@@ -172,7 +172,7 @@ if __name__ == "__main__":
                                                download=True, transform=transform_test)
         test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size,
                                                  shuffle=False)
-    elif args.dataset == 'ImageNet':
+    elif args.dataset == 'Imagenet':
         normalize = transforms.Normalize(mean=[x/255.0 for x in [125.3, 123.0, 113.9]],
                                 std=[x/255.0 for x in [63.0, 62.1, 66.7]])
         # data prep for training set

@@ -70,13 +70,15 @@ class GradientAccumulator(object):
         for param_idx, param in enumerate(module.parameters()):
             tmp_aggregator = []
             for worker_idx in range(num_worker):
-                _shape = param.size()
+                _shape = param.size()#torch.size()
                 if len(_shape) == 1:
                     tmp_aggregator.append(bytearray(getsizeof(np.zeros((_shape[0]*2,)))*4))
                 else:
                     tmp_aggregator.append(bytearray(getsizeof(np.zeros(_shape))*4))
             # initialize the gradient aggragator
+            # 每个参数、每个计算节点有一个缓冲区用于mpi irecv接收数据
             self.gradient_aggregator.append(tmp_aggregator)
+            # 每个参数一个计数器
             self.gradient_aggregate_counter.append(0)
             self.model_index_range.append(param_idx)
 
