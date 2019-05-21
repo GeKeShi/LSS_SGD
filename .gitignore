@@ -2,3 +2,4 @@
 /**/cifar10_data
 /**/cifar100_data
 /**/mnist_data
+/test_grad

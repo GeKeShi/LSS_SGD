@@ -78,8 +78,8 @@ class LSSSimplifiedCompressor(object):
 				
 			#	//Key key =new Key(ByteBuffer.allocate(4).putInt(val).array());
 			 #	//mapped array
-			
-			pos = self.lssCKInstance.insert(keyVal.to_bytes(4, byteorder='big'), values[i], self.centers)
+			#call new insert method
+			pos = self.lssCKInstance.insert_cluster_lable(keyVal.to_bytes(4, byteorder='big'), values[i], self.centers)
 			# pos = self.lssCKInstance.groupInputKV(values[i], self.centers)
 			#	//System.out.println("$: "+i+", "+pos);
 			#	//index
@@ -87,7 +87,7 @@ class LSSSimplifiedCompressor(object):
 		print('insert time:', time.time()-current_time)
 
 		current_time = time.time()
-		self.LSSTable_val = self.lssCKInstance.get_lsstable()
+		self.LSSTable_val = self.centers#use cluster centers to instead the lsstable
 		print('get lsstable time:', time.time()-current_time)
 
 		#//value index
@@ -123,7 +123,8 @@ class LSSSimplifiedCompressor(object):
 				# //Key key =new Key(ByteBuffer.allocate(4).putInt(keyVal).array());				
 				
 				# //index should be smaller by one
-				vals[keyVal - 1] = LSSSimplified.query_val(keyVal.to_bytes(4, byteorder='big'), arrayIndex, coded_data)
+				#vals[keyVal - 1] = LSSSimplified.query_val(keyVal.to_bytes(4, byteorder='big'), arrayIndex, coded_data)
+				vals[keyVal - 1] = coded_data[arrayIndex]
 			# long t3 = System.currentTimeMillis();
 			# LOGGER.info("decodeKey: "+(t2-t1)+", sketch: "+(t3-t2));
 			vals = vals.reshape(code['shape'])

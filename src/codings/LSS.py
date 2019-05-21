@@ -7,10 +7,10 @@ from ClusterStaticNoThreshold import *
 from LSSSimplifiedCompressor import *
 from EncodeChoicer import *
 import random
-import pickle, sys, dill
+import pickle, sys, dill, os
 
 class LSS(Coding):
-    def __init__(self, scheme='lss', bin_num=100, cluster_num=50, *args, **kwargs):
+    def __init__(self, scheme='lss', bin_num=100, cluster_num=20, *args, **kwargs):
         self.scheme = scheme
         self._random = random.random()
         self.values = None
@@ -127,7 +127,8 @@ class LSS(Coding):
         return dValues
 
 if __name__ == '__main__':
-    filepath = './test_grad/conv8_weights_0.npy'
+    dataroot = './../../test_grad'
+    filepath = os.path.join(dataroot, '1_100','conv8_weights_0.npy')
     origin_value = np.load(filepath)
     print(origin_value.shape)
     lss = LSS()

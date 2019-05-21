@@ -31,8 +31,8 @@ class LSSSimplified(object):
     #  * @param useDirectIndex
     #  * @param bufferedWriter
     #  * @param _n,            umber of flow entries
-    #  * @param _c,            cluster number
-    #  * @param _b,            bucket count,
+    #  * @param _c,            cluster number 50
+    #  * @param _b,            bucket count, 100
     #  * @param _fp,           false positive of bloom filters
     #  * @param traces,        flow trace
     #  */
@@ -108,7 +108,7 @@ class LSSSimplified(object):
         # # //the other
         # if positiveclusterCenters != None:
         #     addAll(list0, positiveclusterCenters)
-
+        # sorted cluster
         clusterCenters = np.concatenate((nonpositiveclusterCenters, positiveclusterCenters), axis=0)
         # //fix the cluster num
         clusterNum = len(clusterCenters)
@@ -161,6 +161,7 @@ class LSSSimplified(object):
             # //scaled by cluster size
             # //int arraySize = Math.round(bucketCount/clusterCount);
             arraySize = int(max(LSSSimplified.MinArraySize, round(self.getArraySize(clusterCenters, clusterdensity, clusterentropy, i, self.clusterArrayChoiceMethod, totalSum) * self.bucketCount)))
+            print('arraysize',arraySize)
             if finalLeft - arraySize < 0:
                 # //log.warn("exceed the expected bucket!");
                 arraySize = finalLeft
@@ -171,7 +172,7 @@ class LSSSimplified(object):
             self.LSSTable.append(b)
             # //tune the bucket size
             finalLeft -= arraySize
-
+            print('finalleft', finalLeft)
         return clusterCenters
 
 
@@ -212,6 +213,7 @@ class LSSSimplified(object):
             if choiceArray == 1:
                 # //entropy*center
                 f += clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i]
+                print('entropy {}, center {}, density {}, cumsum {}'.format(clusterentropy[i], abs(clusterCenters[i]), clusterdensity[i], f))
             elif choiceArray == 2:
                 # //entropy*density
                 f += clusterentropy[i] * clusterdensity[i]
@@ -227,6 +229,7 @@ class LSSSimplified(object):
         if choiceArray == 1:
             # //entropy*center
             # print(clusterentropy[i] , clusterCenters[i] , clusterdensity[i] , (totalSum))
+            print('getarraysize',clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i] / (totalSum))
             return clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i] / (totalSum)
         elif choiceArray == 2:
             # //entropy*density
@@ -295,7 +298,34 @@ class LSSSimplified(object):
         # LOGGER.debug("index: " + clusterIndex + ", centroid: " + clusterCenters[clusterIndex] + ", val: " + val + ", bkt: " + array[pos].getAvgEstimator() + ", @: " + array[pos].getCounter());
 
         return clusterIndex
-    
+
+    # /**
+    #  * insert cluster index
+    #  *
+    #  * @param key byte
+    #  * @param val
+    #  * @param clusterCenters
+    #  * @return
+    #  */
+    def insert_cluster_lable(self, key, val, clusterCenters):
+        clusterIndex = self.groupInputKV(val, clusterCenters)
+        if clusterIndex < 0:
+            return -1
+        # //find an array containing the cluster of this value
+        # array = self.LSSTable[clusterIndex]
+
+        # //LOGGER.info("$: "+clusterIndex+", "+array.length+", val="+val);
+
+        # //find position in an array in the LSSTable
+        # pos = LSSSimplified.hashPos(key, clusterIndex, self.LongHashFunction4PosHash) % (len(array))
+        # pos = LSSSimplified.hashPos(key, clusterIndex) % (len(array))
+        # //assume unique id;
+        # array[pos].update(val)
+        # //store
+
+        # LOGGER.debug("index: " + clusterIndex + ", centroid: " + clusterCenters[clusterIndex] + ", val: " + val + ", bkt: " + array[pos].getAvgEstimator() + ", @: " + array[pos].getCounter());
+
+        return clusterIndex    
     def get_lsstable(self):
         LSSTable_val = []
         for LSSTable_item in self.LSSTable:
