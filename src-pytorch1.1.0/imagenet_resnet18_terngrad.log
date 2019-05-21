@@ -1,0 +1,223 @@
+nohup: ignoring input
+--------------------------------------------------------------------------
+There are not enough slots available in the system to satisfy the 2 slots
+that were requested by the application:
+  /THL5/home/daodao/anaconda2/envs/pytorch1.1.0/bin/python
+
+Either request fewer slots for your application, or make more slots available
+for use.
+--------------------------------------------------------------------------
+nohup: ignoring input
+--------------------------------------------------------------------------
+A process has executed an operation involving a call to the
+"fork()" system call to create a child process.  Open MPI is currently
+operating in a condition that could result in memory corruption or
+other system errors; your job may hang, crash, or produce silent
+data corruption.  The use of fork() (or system() or other calls that
+create child processes) is strongly discouraged.
+
+The process that invoked fork was:
+
+  Local host:          [[39921,1],2] (PID 18647)
+
+If you are *absolutely sure* that your application will successfully
+and correctly survive a call to fork(), you may disable this warning
+by setting the mpi_warn_on_fork MCA parameter to 0.
+--------------------------------------------------------------------------
+[th-es-ln0:18701] 2 more processes have sent help message help-opal-runtime.txt / opal_init:warn-fork
+[th-es-ln0:18701] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+imagenet train dataset
+imagenet test dataset
+train.py, quantization_level = 4
+imagenet train dataset
+I am the master: the world size is 3, cur step: 1
+imagenet test dataset
+train.py, quantization_level = 4
+I am worker: 2 in all 2 workers, next step: 0
+Worker 2: starting training
+/THL5/home/daodao/anaconda2/envs/pytorch1.1.0/lib/python2.7/site-packages/torchvision/transforms/functional.py:206: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  mean = torch.tensor(mean, dtype=torch.float32)
+/THL5/home/daodao/anaconda2/envs/pytorch1.1.0/lib/python2.7/site-packages/torchvision/transforms/functional.py:207: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  std = torch.tensor(std, dtype=torch.float32)
+imagenet train dataset
+imagenet test dataset
+train.py, quantization_level = 4
+I am worker: 1 in all 2 workers, next step: 0
+Worker 1: starting training
+Master node is entering step: 1
+Rank of this node: 2, Current step: 1
+/THL5/home/daodao/anaconda2/envs/pytorch1.1.0/lib/python2.7/site-packages/torchvision/transforms/functional.py:206: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  mean = torch.tensor(mean, dtype=torch.float32)
+/THL5/home/daodao/anaconda2/envs/pytorch1.1.0/lib/python2.7/site-packages/torchvision/transforms/functional.py:207: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  std = torch.tensor(std, dtype=torch.float32)
+Rank of this node: 1, Current step: 1
+Worker: 1, Step: 1, Epoch: 0 [0/1281167 (0%)], Loss: 7.0613, Time Cost: 8.2067, Comp: 0.6554, Encode:  6.7754, Comm:  0.2434, Msg(MB):  30.7443, Prec@1:  0.0000, Prec@5:  3.1250
+Worker: 2, Step: 1, Epoch: 0 [0/1281167 (0%)], Loss: 7.0933, Time Cost: 10.0034, Comp: 0.6552, Encode:  6.7593, Comm:  0.2628, Msg(MB):  30.7677, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 1, Decode Cost: 141.995027065, Cur lr 0.01, Gather: 7.82197594643
+Master node is entering step: 2
+Rank of this node: 2, Current step: 2
+Rank of this node: 1, Current step: 2
+Worker: 2, Step: 2, Epoch: 0 [32/1281167 (0%)], Loss: 7.0453, Time Cost: 6.9918, Comp: 0.0994, Encode:  6.6837, Comm:  0.1026, Msg(MB):  30.7465, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 2, Epoch: 0 [32/1281167 (0%)], Loss: 6.8104, Time Cost: 7.0944, Comp: 0.0989, Encode:  6.7777, Comm:  0.1098, Msg(MB):  30.7624, Prec@1:  0.0000, Prec@5:  3.1250
+Master: Step: 2, Decode Cost: 142.19639492, Cur lr 0.01, Gather: 7.03169202805
+Master node is entering step: 3
+Rank of this node: 1, Current step: 3
+Rank of this node: 2, Current step: 3
+Worker: 2, Step: 3, Epoch: 0 [64/1281167 (0%)], Loss: 7.0578, Time Cost: 7.0285, Comp: 0.0994, Encode:  6.7065, Comm:  0.1209, Msg(MB):  30.7781, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 3, Epoch: 0 [64/1281167 (0%)], Loss: 7.0333, Time Cost: 7.1204, Comp: 0.0990, Encode:  6.7741, Comm:  0.1456, Msg(MB):  30.7873, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 3, Decode Cost: 142.169183969, Cur lr 0.01, Gather: 7.05742692947
+Master node is entering step: 4
+Rank of this node: 1, Current step: 4
+Rank of this node: 2, Current step: 4
+Worker: 2, Step: 4, Epoch: 0 [96/1281167 (0%)], Loss: 7.0309, Time Cost: 7.0317, Comp: 0.0996, Encode:  6.7178, Comm:  0.1126, Msg(MB):  30.7475, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 4, Epoch: 0 [96/1281167 (0%)], Loss: 6.9198, Time Cost: 7.1198, Comp: 0.0989, Encode:  6.7755, Comm:  0.1436, Msg(MB):  30.7300, Prec@1:  0.0000, Prec@5:  3.1250
+Master: Step: 4, Decode Cost: 142.313242912, Cur lr 0.01, Gather: 7.0570731163
+Master node is entering step: 5
+Rank of this node: 2, Current step: 5
+Rank of this node: 1, Current step: 5
+Worker: 2, Step: 5, Epoch: 0 [128/1281167 (0%)], Loss: 7.1452, Time Cost: 7.0311, Comp: 0.0993, Encode:  6.7232, Comm:  0.1057, Msg(MB):  30.7772, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 5, Epoch: 0 [128/1281167 (0%)], Loss: 7.0693, Time Cost: 7.1366, Comp: 0.0989, Encode:  6.7872, Comm:  0.1475, Msg(MB):  30.7854, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 5, Decode Cost: 142.462705135, Cur lr 0.01, Gather: 7.07276701927
+Master node is entering step: 6
+Rank of this node: 2, Current step: 6
+Rank of this node: 1, Current step: 6
+Worker: 2, Step: 6, Epoch: 0 [160/1281167 (0%)], Loss: 6.9486, Time Cost: 7.0645, Comp: 0.0993, Encode:  6.7506, Comm:  0.1150, Msg(MB):  30.7287, Prec@1:  0.0000, Prec@5:  3.1250
+Worker: 1, Step: 6, Epoch: 0 [160/1281167 (0%)], Loss: 6.9236, Time Cost: 7.1417, Comp: 0.0995, Encode:  6.7858, Comm:  0.1567, Msg(MB):  30.7384, Prec@1:  0.0000, Prec@5:  3.1250
+Master: Step: 6, Decode Cost: 142.296496868, Cur lr 0.01, Gather: 7.08093500137
+Master node is entering step: 7
+Rank of this node: 2, Current step: 7
+Rank of this node: 1, Current step: 7
+Worker: 2, Step: 7, Epoch: 0 [192/1281167 (0%)], Loss: 7.0551, Time Cost: 7.0263, Comp: 0.0994, Encode:  6.7220, Comm:  0.1024, Msg(MB):  30.7387, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 7, Epoch: 0 [192/1281167 (0%)], Loss: 6.9312, Time Cost: 7.1368, Comp: 0.0991, Encode:  6.7947, Comm:  0.1403, Msg(MB):  30.7576, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 7, Decode Cost: 142.604674816, Cur lr 0.01, Gather: 7.07332801819
+Master node is entering step: 8
+Rank of this node: 2, Current step: 8
+Rank of this node: 1, Current step: 8
+Worker: 2, Step: 8, Epoch: 0 [224/1281167 (0%)], Loss: 6.9896, Time Cost: 7.0696, Comp: 0.0994, Encode:  6.7556, Comm:  0.1135, Msg(MB):  30.7526, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 8, Epoch: 0 [224/1281167 (0%)], Loss: 7.0734, Time Cost: 7.1466, Comp: 0.0990, Encode:  6.7778, Comm:  0.1686, Msg(MB):  30.7417, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 8, Decode Cost: 142.605206013, Cur lr 0.01, Gather: 7.0845580101
+Master node is entering step: 9
+Rank of this node: 2, Current step: 9
+Rank of this node: 1, Current step: 9
+Worker: 2, Step: 9, Epoch: 0 [256/1281167 (0%)], Loss: 7.0582, Time Cost: 7.0417, Comp: 0.0994, Encode:  6.7276, Comm:  0.1137, Msg(MB):  30.7425, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 9, Epoch: 0 [256/1281167 (0%)], Loss: 7.0288, Time Cost: 7.1237, Comp: 0.0987, Encode:  6.7705, Comm:  0.1535, Msg(MB):  30.7478, Prec@1:  0.0000, Prec@5:  3.1250
+Master: Step: 9, Decode Cost: 142.314053059, Cur lr 0.01, Gather: 7.06219315529
+Master node is entering step: 10
+Rank of this node: 2, Current step: 10
+Rank of this node: 1, Current step: 10
+Worker: 2, Step: 10, Epoch: 0 [288/1281167 (0%)], Loss: 7.1934, Time Cost: 7.0558, Comp: 0.0993, Encode:  6.7414, Comm:  0.1138, Msg(MB):  30.7806, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 10, Epoch: 0 [288/1281167 (0%)], Loss: 7.2121, Time Cost: 7.1385, Comp: 0.0993, Encode:  6.7902, Comm:  0.1475, Msg(MB):  30.7709, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 10, Decode Cost: 142.935631037, Cur lr 0.01, Gather: 7.07600808144
+Master node is entering step: 11
+Rank of this node: 1, Current step: 11
+Rank of this node: 2, Current step: 11
+Worker: 2, Step: 11, Epoch: 0 [320/1281167 (0%)], Loss: 6.9642, Time Cost: 7.0667, Comp: 0.0995, Encode:  6.7294, Comm:  0.1346, Msg(MB):  30.7675, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 11, Epoch: 0 [320/1281167 (0%)], Loss: 6.9824, Time Cost: 7.1533, Comp: 0.0992, Encode:  6.7781, Comm:  0.1729, Msg(MB):  30.7723, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 11, Decode Cost: 142.89101696, Cur lr 0.01, Gather: 7.08421397209
+Master node is entering step: 12
+Rank of this node: 2, Current step: 12
+Rank of this node: 1, Current step: 12
+Worker: 2, Step: 12, Epoch: 0 [352/1281167 (0%)], Loss: 7.0477, Time Cost: 7.0344, Comp: 0.0995, Encode:  6.7271, Comm:  0.1110, Msg(MB):  30.7695, Prec@1:  0.0000, Prec@5:  3.1250
+Worker: 1, Step: 12, Epoch: 0 [352/1281167 (0%)], Loss: 6.9923, Time Cost: 7.1149, Comp: 0.0991, Encode:  6.7749, Comm:  0.1440, Msg(MB):  30.7812, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 12, Decode Cost: 143.006207943, Cur lr 0.01, Gather: 7.05721211433
+Master node is entering step: 13
+Rank of this node: 2, Current step: 13
+Rank of this node: 1, Current step: 13
+Worker: 2, Step: 13, Epoch: 0 [384/1281167 (0%)], Loss: 6.9942, Time Cost: 7.0485, Comp: 0.0996, Encode:  6.7304, Comm:  0.1159, Msg(MB):  30.7740, Prec@1:  0.0000, Prec@5:  3.1250
+Worker: 1, Step: 13, Epoch: 0 [384/1281167 (0%)], Loss: 7.2591, Time Cost: 7.1352, Comp: 0.0988, Encode:  6.7743, Comm:  0.1596, Msg(MB):  30.7752, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 13, Decode Cost: 142.675890923, Cur lr 0.01, Gather: 7.07156395912
+Master node is entering step: 14
+Rank of this node: 1, Current step: 14
+Rank of this node: 2, Current step: 14
+Worker: 2, Step: 14, Epoch: 0 [416/1281167 (0%)], Loss: 6.9487, Time Cost: 7.0668, Comp: 0.0997, Encode:  6.7462, Comm:  0.1160, Msg(MB):  30.7766, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 14, Epoch: 0 [416/1281167 (0%)], Loss: 7.0723, Time Cost: 7.1487, Comp: 0.0991, Encode:  6.7769, Comm:  0.1677, Msg(MB):  30.7355, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 14, Decode Cost: 142.608000994, Cur lr 0.01, Gather: 7.08267307281
+Master node is entering step: 15
+Rank of this node: 1, Current step: 15
+Rank of this node: 2, Current step: 15
+Worker: 2, Step: 15, Epoch: 0 [448/1281167 (0%)], Loss: 7.0425, Time Cost: 7.0244, Comp: 0.0997, Encode:  6.7199, Comm:  0.1052, Msg(MB):  30.7730, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 15, Epoch: 0 [448/1281167 (0%)], Loss: 6.9905, Time Cost: 7.1289, Comp: 0.0990, Encode:  6.7833, Comm:  0.1472, Msg(MB):  30.7814, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 15, Decode Cost: 142.586948872, Cur lr 0.01, Gather: 7.06868600845
+Master node is entering step: 16
+Rank of this node: 2, Current step: 16
+Rank of this node: 1, Current step: 16
+Worker: 2, Step: 16, Epoch: 0 [480/1281167 (0%)], Loss: 6.9193, Time Cost: 7.0672, Comp: 0.0994, Encode:  6.7510, Comm:  0.1129, Msg(MB):  30.7647, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 16, Epoch: 0 [480/1281167 (0%)], Loss: 7.2328, Time Cost: 7.1526, Comp: 0.0994, Encode:  6.7763, Comm:  0.1730, Msg(MB):  30.7502, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 16, Decode Cost: 142.715523005, Cur lr 0.01, Gather: 7.0880150795
+Master node is entering step: 17
+Rank of this node: 2, Current step: 17
+Rank of this node: 1, Current step: 17
+Worker: 2, Step: 17, Epoch: 0 [512/1281167 (0%)], Loss: 7.0630, Time Cost: 7.0522, Comp: 0.0997, Encode:  6.7329, Comm:  0.1175, Msg(MB):  30.7471, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 17, Epoch: 0 [512/1281167 (0%)], Loss: 7.0644, Time Cost: 7.1303, Comp: 0.0993, Encode:  6.7735, Comm:  0.1556, Msg(MB):  30.7493, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 17, Decode Cost: 142.612020016, Cur lr 0.01, Gather: 7.06755113602
+Master node is entering step: 18
+Rank of this node: 1, Current step: 18
+Rank of this node: 2, Current step: 18
+Worker: 2, Step: 18, Epoch: 0 [544/1281167 (0%)], Loss: 7.0802, Time Cost: 7.0483, Comp: 0.0992, Encode:  6.7376, Comm:  0.1100, Msg(MB):  30.7989, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 18, Epoch: 0 [544/1281167 (0%)], Loss: 7.1029, Time Cost: 7.1362, Comp: 0.0991, Encode:  6.7981, Comm:  0.1375, Msg(MB):  30.7535, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 18, Decode Cost: 142.725115061, Cur lr 0.01, Gather: 7.0739569664
+Master node is entering step: 19
+Rank of this node: 2, Current step: 19
+Rank of this node: 1, Current step: 19
+Worker: 2, Step: 19, Epoch: 0 [576/1281167 (0%)], Loss: 7.0538, Time Cost: 7.0577, Comp: 0.0995, Encode:  6.7372, Comm:  0.1126, Msg(MB):  30.7325, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 19, Epoch: 0 [576/1281167 (0%)], Loss: 7.0819, Time Cost: 7.1501, Comp: 0.0991, Encode:  6.7852, Comm:  0.1572, Msg(MB):  30.7434, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 19, Decode Cost: 143.504655123, Cur lr 0.01, Gather: 7.08118700981
+Master node is entering step: 20
+Rank of this node: 2, Current step: 20
+Rank of this node: 1, Current step: 20
+Worker: 2, Step: 20, Epoch: 0 [608/1281167 (0%)], Loss: 7.0045, Time Cost: 7.0489, Comp: 0.0997, Encode:  6.7373, Comm:  0.1072, Msg(MB):  30.7698, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 20, Epoch: 0 [608/1281167 (0%)], Loss: 6.9073, Time Cost: 7.1574, Comp: 0.0994, Encode:  6.8043, Comm:  0.1489, Msg(MB):  30.7739, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 20, Decode Cost: 143.777894974, Cur lr 0.01, Gather: 7.09191608429
+Master node is entering step: 21
+Rank of this node: 2, Current step: 21
+Rank of this node: 1, Current step: 21
+Worker: 2, Step: 21, Epoch: 0 [640/1281167 (0%)], Loss: 7.0853, Time Cost: 7.0283, Comp: 0.0995, Encode:  6.7251, Comm:  0.1032, Msg(MB):  30.7672, Prec@1:  0.0000, Prec@5:  3.1250
+Worker: 1, Step: 21, Epoch: 0 [640/1281167 (0%)], Loss: 6.9016, Time Cost: 7.1388, Comp: 0.0991, Encode:  6.8009, Comm:  0.1384, Msg(MB):  30.7565, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 21, Decode Cost: 143.448090076, Cur lr 0.01, Gather: 7.07761311531
+Master node is entering step: 22
+Rank of this node: 1, Current step: 22
+Rank of this node: 2, Current step: 22
+Worker: 2, Step: 22, Epoch: 0 [672/1281167 (0%)], Loss: 7.0673, Time Cost: 7.0648, Comp: 0.0993, Encode:  6.7552, Comm:  0.1150, Msg(MB):  30.7615, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 22, Epoch: 0 [672/1281167 (0%)], Loss: 6.8539, Time Cost: 7.1556, Comp: 0.0988, Encode:  6.8046, Comm:  0.1569, Msg(MB):  30.8018, Prec@1:  0.0000, Prec@5:  3.1250
+Master: Step: 22, Decode Cost: 143.731086016, Cur lr 0.01, Gather: 7.09963297844
+Master node is entering step: 23
+Rank of this node: 2, Current step: 23
+Rank of this node: 1, Current step: 23
+Worker: 2, Step: 23, Epoch: 0 [704/1281167 (0%)], Loss: 7.1190, Time Cost: 7.0599, Comp: 0.0993, Encode:  6.7331, Comm:  0.1253, Msg(MB):  30.7537, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 23, Epoch: 0 [704/1281167 (0%)], Loss: 6.9682, Time Cost: 7.1412, Comp: 0.0990, Encode:  6.7947, Comm:  0.1454, Msg(MB):  30.7797, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 23, Decode Cost: 142.102097034, Cur lr 0.01, Gather: 7.07846021652
+Master node is entering step: 24
+Rank of this node: 1, Current step: 24
+Rank of this node: 2, Current step: 24
+Worker: 2, Step: 24, Epoch: 0 [736/1281167 (0%)], Loss: 7.2398, Time Cost: 7.0627, Comp: 0.0992, Encode:  6.7415, Comm:  0.1233, Msg(MB):  30.7916, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 24, Epoch: 0 [736/1281167 (0%)], Loss: 6.9851, Time Cost: 7.1438, Comp: 0.0993, Encode:  6.7878, Comm:  0.1581, Msg(MB):  30.7470, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 24, Decode Cost: 142.476307869, Cur lr 0.01, Gather: 7.08463001251
+Master node is entering step: 25
+Rank of this node: 1, Current step: 25
+Rank of this node: 2, Current step: 25
+Worker: 2, Step: 25, Epoch: 0 [768/1281167 (0%)], Loss: 7.0678, Time Cost: 7.0246, Comp: 0.0993, Encode:  6.7201, Comm:  0.1051, Msg(MB):  30.7525, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 25, Epoch: 0 [768/1281167 (0%)], Loss: 6.9544, Time Cost: 7.1254, Comp: 0.0991, Encode:  6.7920, Comm:  0.1326, Msg(MB):  30.7593, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 25, Decode Cost: 142.928326845, Cur lr 0.01, Gather: 7.06476187706
+Master node is entering step: 26
+Rank of this node: 2, Current step: 26
+Rank of this node: 1, Current step: 26
+Worker: 2, Step: 26, Epoch: 0 [800/1281167 (0%)], Loss: 7.1068, Time Cost: 7.0576, Comp: 0.0997, Encode:  6.7457, Comm:  0.1102, Msg(MB):  30.7611, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 26, Epoch: 0 [800/1281167 (0%)], Loss: 6.9929, Time Cost: 7.1445, Comp: 0.0992, Encode:  6.7967, Comm:  0.1449, Msg(MB):  30.7621, Prec@1:  0.0000, Prec@5:  0.0000
+Rank of this node: 1, Current step: 27
+Master: Step: 26, Decode Cost: 142.916692972, Cur lr 0.01, Gather: 7.08198595047
+Master node is entering step: 27
+Rank of this node: 2, Current step: 27
+Worker: 1, Step: 27, Epoch: 0 [832/1281167 (0%)], Loss: 6.9949, Time Cost: 7.2309, Comp: 0.1004, Encode:  6.7880, Comm:  0.1234, Msg(MB):  30.7463, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 2, Step: 27, Epoch: 0 [832/1281167 (0%)], Loss: 6.9398, Time Cost: 7.2209, Comp: 0.1016, Encode:  6.7784, Comm:  0.1587, Msg(MB):  30.7788, Prec@1:  0.0000, Prec@5:  0.0000
+Master: Step: 27, Decode Cost: 142.77095294, Cur lr 0.01, Gather: 7.14639401436
+Master node is entering step: 28
+Rank of this node: 2, Current step: 28
+Rank of this node: 1, Current step: 28
+Worker: 2, Step: 28, Epoch: 0 [864/1281167 (0%)], Loss: 6.9742, Time Cost: 7.0591, Comp: 0.1001, Encode:  6.7462, Comm:  0.1139, Msg(MB):  30.7666, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 28, Epoch: 0 [864/1281167 (0%)], Loss: 6.9293, Time Cost: 7.1595, Comp: 0.0993, Encode:  6.8368, Comm:  0.1245, Msg(MB):  30.7686, Prec@1:  0.0000, Prec@5:  3.1250
+Master: Step: 28, Decode Cost: 142.524516821, Cur lr 0.01, Gather: 7.10012507439
+Master node is entering step: 29
+Rank of this node: 2, Current step: 29
+Rank of this node: 1, Current step: 29
+Worker: 2, Step: 29, Epoch: 0 [896/1281167 (0%)], Loss: 7.0843, Time Cost: 7.0182, Comp: 0.0991, Encode:  6.7127, Comm:  0.1056, Msg(MB):  30.7506, Prec@1:  0.0000, Prec@5:  0.0000
+Worker: 1, Step: 29, Epoch: 0 [896/1281167 (0%)], Loss: 7.0867, Time Cost: 7.1369, Comp: 0.0991, Encode:  6.7954, Comm:  0.1412, Msg(MB):  30.7826, Prec@1:  0.0000, Prec@5:  0.0000

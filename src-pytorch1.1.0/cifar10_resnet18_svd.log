@@ -1,0 +1,64 @@
+nohup: ignoring input
+--------------------------------------------------------------------------
+A process has executed an operation involving a call to the
+"fork()" system call to create a child process.  Open MPI is currently
+operating in a condition that could result in memory corruption or
+other system errors; your job may hang, crash, or produce silent
+data corruption.  The use of fork() (or system() or other calls that
+create child processes) is strongly discouraged.
+
+The process that invoked fork was:
+
+  Local host:          [[62313,1],0] (PID 23353)
+
+If you are *absolutely sure* that your application will successfully
+and correctly survive a call to fork(), you may disable this warning
+by setting the mpi_warn_on_fork MCA parameter to 0.
+--------------------------------------------------------------------------
+[th-es-ln0:08597] 2 more processes have sent help message help-opal-runtime.txt / opal_init:warn-fork
+[th-es-ln0:08597] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+train.py, svd_rank = 3
+train.py, svd_rank = 3
+train.py, svd_rank = 3
+I am worker: 2 in all 2 workers, next step: 0
+I am the master: the world size is 3, cur step: 1
+Worker 2: starting training
+I am worker: 1 in all 2 workers, next step: 0
+Worker 1: starting training
+Master node is entering step: 1
+distributed_nn.py:110: UserWarning: volatile was removed and now has no effect. Use `with torch.no_grad():` instead.
+  Variable(x.unsqueeze(0), requires_grad=False, volatile=True),
+distributed_nn.py:110: UserWarning: volatile was removed and now has no effect. Use `with torch.no_grad():` instead.
+  Variable(x.unsqueeze(0), requires_grad=False, volatile=True),
+Rank of this node: 2, Current step: 1
+Rank of this node: 1, Current step: 1
+[96, 98]
+[96, 98]
+[gn28:32239] *** Process received signal ***
+[gn28:32239] Signal: Segmentation fault (11)
+[gn28:32239] Signal code: Invalid permissions (2)
+[gn28:32239] Failing at address: 0x1e23290
+[gn15:21672] *** Process received signal ***
+[gn15:21672] Signal: Segmentation fault (11)
+[gn15:21672] Signal code: Invalid permissions (2)
+[gn15:21672] Failing at address: 0xc7c290
+[gn28:32239] [ 0] /usr/lib64/libpthread.so.0(+0xf100)[0x2b49064b3100]
+[gn28:32239] [ 1] [0x1e23290]
+[gn28:32239] *** End of error message ***
+[gn15:21672] [ 0] /usr/lib64/libpthread.so.0(+0xf100)[0x2b20a8313100]
+[gn15:21672] [ 1] [0xc7c290]
+[gn15:21672] *** End of error message ***
+-------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+-------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 1 with PID 32239 on node gn28 exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------
+2 total processes killed (some possibly by mpirun during cleanup)

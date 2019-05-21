@@ -114,11 +114,11 @@ class ResNet(nn.Module):
 def ResNet18(num_classes):
     return ResNet(BasicBlock, [2,2,2,2], num_classes=num_classes)
 
-def ResNet34():
+def ResNet34(num_classes):
     return ResNet(BasicBlock, [3,4,6,3], num_classes=num_classes)
 
-def ResNet50():
-    return ResNet(Bottleneck, [3,4,6,3])
+def ResNet50(num_classes):
+    return ResNet(Bottleneck, [3,4,6,3], num_classes=num_classes)
 
 def ResNet101():
     return ResNet(Bottleneck, [3,4,23,3])

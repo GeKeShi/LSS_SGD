@@ -1,0 +1,57 @@
+nohup: ignoring input
+--------------------------------------------------------------------------
+A process has executed an operation involving a call to the
+"fork()" system call to create a child process.  Open MPI is currently
+operating in a condition that could result in memory corruption or
+other system errors; your job may hang, crash, or produce silent
+data corruption.  The use of fork() (or system() or other calls that
+create child processes) is strongly discouraged.
+
+The process that invoked fork was:
+
+  Local host:          [[35589,1],0] (PID 15824)
+
+If you are *absolutely sure* that your application will successfully
+and correctly survive a call to fork(), you may disable this warning
+by setting the mpi_warn_on_fork MCA parameter to 0.
+--------------------------------------------------------------------------
+[th-es-ln0:23033] 2 more processes have sent help message help-opal-runtime.txt / opal_init:warn-fork
+[th-es-ln0:23033] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+Files already downloaded and verified
+train.py, svd_rank = 3
+train.py, svd_rank = 3
+train.py, svd_rank = 3
+I am the master: the world size is 3, cur step: 1
+I am worker: 1 in all 2 workers, next step: 0
+Worker 1: starting training
+distributed_nn.py:154: UserWarning: volatile was removed and now has no effect. Use `with torch.no_grad():` instead.
+  Variable(x.unsqueeze(0), requires_grad=False, volatile=True),
+I am worker: 2 in all 2 workers, next step: 0
+Worker 2: starting training
+Rank of this node: 1, Current step: 1
+Master node is entering step: 1
+distributed_nn.py:154: UserWarning: volatile was removed and now has no effect. Use `with torch.no_grad():` instead.
+  Variable(x.unsqueeze(0), requires_grad=False, volatile=True),
+Rank of this node: 2, Current step: 1
+[96, 98]
+[96, 98]
+[gn8:02185] *** Process received signal ***
+[gn8:02185] Signal: Segmentation fault (11)
+[gn8:02185] Signal code: Address not mapped (1)
+[gn8:02185] Failing at address: 0x2
+[gn7:21619] *** Process received signal ***
+[gn7:21619] Signal: Segmentation fault (11)
+[gn7:21619] Signal code: Address not mapped (1)
+[gn7:21619] Failing at address: 0x2
+-------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+-------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 2 with PID 2185 on node gn8 exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------

@@ -130,16 +130,24 @@ class SyncReplicasMaster_NN(NN_Trainer):
 
         ############ will be deprecated soon #############################
         self._eval_batch_size = 1000
-
+        #print(self.__dict__)
         if kwargs['code'] == 'sgd':
             if not _FAKE_SGD:
                 self._coder = codings.svd.SVD(compress=False)
             else:
                 self._coder = codings.lossless_compress.LosslessCompress()
         elif kwargs['code'] == 'svd':
-            print("train.py, svd_rank =", self._svd_rank)
             self._coder = codings.svd.SVD(random_sample=False, rank=self._svd_rank,
                                    compress=True)
+            print("train.py, svd_rank =", self._svd_rank)
+        elif kwargs['code'] == 'qsgd':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(**qsgdkw)
+        elif kwargs['code'] == 'terngrad':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(scheme='terngrad', **qsgdkw)
         else:
             raise ValueError('args.code not recognized')
 
@@ -151,6 +159,8 @@ class SyncReplicasMaster_NN(NN_Trainer):
             self.network=ResNet18(num_classes=num_classes)
         elif self.network_config == "ResNet34":
             self.network=ResNet34(num_classes=num_classes)
+        elif self.network_config == "ResNet50":
+            self.network=ResNet50(num_classes=num_classes)
         elif self.network_config == "FC":
             self.network=FC_NN()
         elif self.network_config == "DenseNet":

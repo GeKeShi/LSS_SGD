@@ -133,6 +133,14 @@ class DistributedWorker(NN_Trainer):
             print("train.py, svd_rank =", self._svd_rank)
             self._coder = codings.svd.SVD(random_sample=True, 
                 rank=self._svd_rank, compress=True)
+        elif kwargs['code'] == 'qsgd':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(**qsgdkw)
+        elif kwargs['code'] == 'terngrad':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(scheme='terngrad', **qsgdkw)
         else:
             raise ValueError('args.code not recognized')
 
@@ -144,6 +152,8 @@ class DistributedWorker(NN_Trainer):
             self.network=ResNet18(num_classes=num_classes)
         elif self.network_config == "ResNet34":
             self.network=ResNet34(num_classes=num_classes)
+        elif self.network_config == "ResNet50":
+            self.network=ResNet50(num_classes=num_classes)
         elif self.network_config == "FC":
             self.network=FC_NN()
         elif self.network_config == "DenseNet":
@@ -301,6 +311,7 @@ class DistributedWorker(NN_Trainer):
             if "running_mean" in key_name or "running_var" in key_name:
                 tmp_dict={key_name: param}
             else:
+                #print(self.rank,param_idx,key_name,param.size(),model_counter_,weights_to_update[model_counter_].shape)
                 assert param.size() == weights_to_update[model_counter_].shape
                 if self._enable_gpu:
                     tmp_dict = {key_name: torch.from_numpy(weights_to_update[model_counter_]).cuda()}

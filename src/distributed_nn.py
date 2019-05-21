@@ -172,20 +172,15 @@ if __name__ == "__main__":
                                                download=True, transform=transform_test)
         test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size,
                                                  shuffle=False)
-    elif args.dataset == 'ImageNet':
-        normalize = transforms.Normalize(mean=[x/255.0 for x in [125.3, 123.0, 113.9]],
-                                std=[x/255.0 for x in [63.0, 62.1, 66.7]])
+    elif args.dataset == 'Imagenet':
+        normalize = transforms.Normalize(mean=torch.Tensor([0.485, 0.456, 0.406]),
+                                     std=torch.Tensor([0.229, 0.224, 0.225]))
         # data prep for training set
         # note that the key point to reach convergence performance reported in this paper (https://arxiv.org/abs/1512.03385)
         # is to implement data augmentation
         transform_train = transforms.Compose([
-            transforms.Scale((227, 227)),
-            transforms.ToTensor(),
-            transforms.Lambda(lambda x: F.pad(
-                                Variable(x.unsqueeze(0), requires_grad=False, volatile=True),
-                                (4,4,4,4),mode='reflect').data.squeeze()),
-            transforms.ToPILImage(),
-            transforms.RandomCrop(227),
+            transforms.Resize(256),
+            transforms.RandomCrop(size=224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
@@ -195,16 +190,16 @@ if __name__ == "__main__":
             transforms.ToTensor(),
             normalize])
         # load training and test set here:
-        training_set = datasets.CIFAR10(root='./cifar10_data', train=True,
-                                                download=True, transform=transform_train)
+        training_set = datasets.ImageFolder(root='/THL5/home/daodao/imagenet/ILSVRC_2012_img_train/', transform=transform_train)
         #training_set = datasets.CIFAR10(root='./cifar10_data', train=True,
         #                                        download=True, transform=transform_test)
         train_loader = torch.utils.data.DataLoader(training_set, batch_size=args.batch_size,
-                                                  shuffle=True)
-        testset = datasets.CIFAR10(root='./cifar10_data', train=False,
-                                               download=True, transform=transform_test)
+                                                  shuffle=True, num_workers=8)
+        print('imagenet train dataset')
+        testset = datasets.ImageFolder(root='/THL5/home/daodao/imagenet/ILSVRC_2012_img_val_withlabel/', transform=transform_test)
         test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size,
-                                                 shuffle=False)
+                                                 shuffle=False, num_workers=8)
+        print('imagenet test dataset')
 
     kwargs_master = {'batch_size':args.batch_size, 
                     'learning_rate':args.lr, 
@@ -241,9 +236,13 @@ if __name__ == "__main__":
                     'bucket_size':args.bucket_size}
 
     if rank == 0:
+        #print(SyncReplicasMaster_NN.__dict__)
         master_fc_nn = SyncReplicasMaster_NN(comm=comm, **kwargs_master)
+        #print('master_fc_nn:', master_fc_nn.__dict__)
         if args.dataset == 'Cifar100':
             master_fc_nn.build_model(num_classes=100)
+        elif args.dataset == 'Imagenet':
+            master_fc_nn.build_model(num_classes=1000)
         else:
             master_fc_nn.build_model(num_classes=10)
         print("I am the master: the world size is {}, cur step: {}".format(master_fc_nn.world_size, master_fc_nn.cur_step))
@@ -253,6 +252,8 @@ if __name__ == "__main__":
         worker_fc_nn = DistributedWorker(comm=comm, **kwargs_worker)
         if args.dataset == 'Cifar100':
             worker_fc_nn.build_model(num_classes=100)
+        elif args.dataset == 'Imagenet':
+            worker_fc_nn.build_model(num_classes=1000)
         else:
             worker_fc_nn.build_model(num_classes=10)
         print("I am worker: {} in all {} workers, next step: {}".format(worker_fc_nn.rank, worker_fc_nn.world_size-1, worker_fc_nn.next_step))
