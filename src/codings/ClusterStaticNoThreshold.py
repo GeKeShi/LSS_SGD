@@ -166,7 +166,7 @@ class ClusterStaticNoThreshold(object):
 				# //cluster centers to do
 			center.append(Pair(float(clusterResults[i].size)/totalPoints,
 					centerV[i],self.entropy_bin(clusterResults[i])))
-			# print('Pair:',float(clusterResults[i].size)/totalPoints, centerV[i], self.entropy_bin(clusterResults[i]))
+			print('Pair:',float(clusterResults[i].size)/totalPoints, centerV[i], self.entropy_bin(clusterResults[i]))
 				# //LOG.info("center: "+ centerV.getPoint()[0]);
 				# //all nodes
 	# //		    	for(oneDimData oneD: clusterResults.get(i).getPoints()){

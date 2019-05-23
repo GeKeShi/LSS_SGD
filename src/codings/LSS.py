@@ -10,7 +10,7 @@ import random
 import pickle, sys, dill
 
 class LSS(Coding):
-    def __init__(self, scheme='lss', bin_num=100, cluster_num=50, *args, **kwargs):
+    def __init__(self, scheme='lss', bin_num=2000, cluster_num=30, *args, **kwargs):
         self.scheme = scheme
         self._random = random.random()
         self.values = None
@@ -127,7 +127,7 @@ class LSS(Coding):
         return dValues
 
 if __name__ == '__main__':
-    filepath = './test_grad/conv8_weights_0.npy'
+    filepath = '/Users/keke/Documents/Project/Sketch_DNN/Collect_Gradients/ATOMO/test_grad/1/10/layer3.1.conv2.weight.npy'
     origin_value = np.load(filepath)
     print(origin_value.shape)
     lss = LSS()

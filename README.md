@@ -153,3 +153,13 @@ Those are potential directions we are actively working on, stay tuned!
   year={2018}
 }
 ```
+##changelog
+###2019-5-21
+- 在LSS_SGD_cluster分支上测试cluster方法的效果，详细见该分支日志
+###2019-5-22
+- 取resnet18在cifar10上的梯度，batchsize 128\*8，每10个step取一次，在cifar100上的梯度，batchsize 128\*8，每200个step取一次
+- 安装pytorch0.4.0测试在qsgd上的速度，decode速度还是比pytorch0.3.0慢了10倍，而且在cifar10上SVD方法mpi仍然会报错
+- 将梯度画成图，卷积层基本集中分布在0，bn和shotcut参数高斯分布，全连接层的分布比较分散
+- pytorch0.3.0imagenet训练需要测试Torchvision的函数是否可用
+- 用真实的梯度数据测试，试着解决数据偏斜问题中发现的一些情况：类簇的entropy相似3.**；bucket增大压缩时间减少，cluster数量增大，压缩时间增大，总的bucketsize可以作为一个tradeoff；clustercenter可以作为调节对聚类中心数据大小自适应能力的参数，应该在getarraysize中考虑；真实的梯度中类簇之间的确是数据分布不均匀，但是这种不均匀和梯度的不均匀不成比例，猜测是因为把太大的数值舍弃了的缘故（大数值应该在梯度训练中被考虑，而不是被认为是离群点）
+- imagenet数据resnet应该是224，改用官方模型吧

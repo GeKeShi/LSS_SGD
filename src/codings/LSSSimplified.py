@@ -226,7 +226,7 @@ class LSSSimplified(object):
     def getArraySize(self, clusterCenters, clusterdensity, clusterentropy, i, choiceArray, totalSum):
         if choiceArray == 1:
             # //entropy*center
-            # print(clusterentropy[i] , clusterCenters[i] , clusterdensity[i] , (totalSum))
+            print('getarrarysize:',clusterentropy[i] , clusterCenters[i] , clusterdensity[i], clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i], (totalSum))
             return clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i] / (totalSum)
         elif choiceArray == 2:
             # //entropy*density

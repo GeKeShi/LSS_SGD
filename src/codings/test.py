@@ -1,3 +1,6 @@
+import numpy as np
+import os
+
 class Test(object):
     b=5
     def __init__(self):
@@ -11,4 +14,8 @@ class Test(object):
         print(a)
 
 if __name__ == '__main__':
-    test = Test()
+    a = np.zeros(100)
+    path = os.path.join('100_'+"a", 'aa')
+    print(path)
+    os.makedirs(path)
+    np.save(os.path.join(path, 'aaa'), a)
