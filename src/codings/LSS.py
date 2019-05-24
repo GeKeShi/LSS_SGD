@@ -8,9 +8,12 @@ from LSSSimplifiedCompressor import *
 from EncodeChoicer import *
 import random
 import pickle, sys, dill
+from scipy.stats import scoreatpercentile
+import seaborn as sb
+import matplotlib.pyplot as plt
 
 class LSS(Coding):
-    def __init__(self, scheme='lss', bin_num=2000, cluster_num=30, *args, **kwargs):
+    def __init__(self, scheme='lss', bin_num=1000, cluster_num=30, *args, **kwargs):
         self.scheme = scheme
         self._random = random.random()
         self.values = None
@@ -142,7 +145,29 @@ if __name__ == '__main__':
     decode_value = lss.decode(unpickle_code, cuda=False)
     decode_time = time.time() - current_time
     print('encode time {}, decode_time {}, decode shape {}'.format(encode_time, decode_time, decode_value.numpy().shape))
-    code_error = np.abs(origin_value - decode_value.numpy())/(np.abs(origin_value))
-    print(code_error)
-    print('mean error{}'.format(code_error.mean()))
+    code_error = (origin_value.flat[:] - decode_value.numpy().flat[:])/(np.abs(origin_value.flat[:]))
+    big_score = scoreatpercentile(np.abs(origin_value.flat[:]), 95)
+    big_mask = np.abs(origin_value.flat[:])>big_score
+    small_mask = np.abs(origin_value.flat[:])<=big_score
+    big_score_error = np.abs((origin_value.flat[:])[big_mask] - (decode_value.numpy().flat[:])[big_mask])/np.abs((origin_value.flat[:])[big_mask])
+    # small_score_error to do
+    small_score_error = np.abs((origin_value.flat[:])[small_mask] - (decode_value.numpy().flat[:])[small_mask])/np.abs((origin_value.flat[:])[small_mask])
+    positive_error = code_error[code_error > 0]
+    negative_error = code_error[code_error <= 0]
+    print(positive_error,positive_error.size, negative_error, negative_error.size)
+    print('mean error{}, positive error {}, negative error {}, big num error {}, small num error {}'.format(code_error.mean(), positive_error.mean(), np.abs(negative_error.mean()), big_score_error.mean(), small_score_error.mean()))
+    print(positive_error.max(), np.abs(negative_error).max(), small_score_error.max(), big_score_error.max())
+    # sb.set_style('darkgrid')
+    # img1 = sb.distplot(big_score_error)
+    # plt.show(img1)
+    # plt.close()
+    # img2 = sb.distplot(small_score_error)
+    # plt.show(img2)
+    # plt.close()
+    # img3 = sb.distplot(positive_error)
+    # plt.show(img3)
+    # plt.close()
+    # img4 = sb.distplot(negative_error)
+    # plt.show(img4)
+    # plt.close()
 

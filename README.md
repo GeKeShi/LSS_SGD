@@ -163,3 +163,16 @@ Those are potential directions we are actively working on, stay tuned!
 - pytorch0.3.0imagenet训练需要测试Torchvision的函数是否可用
 - 用真实的梯度数据测试，试着解决数据偏斜问题中发现的一些情况：类簇的entropy相似3.**；bucket增大压缩时间减少，cluster数量增大，压缩时间增大，总的bucketsize可以作为一个tradeoff；clustercenter可以作为调节对聚类中心数据大小自适应能力的参数，应该在getarraysize中考虑；真实的梯度中类簇之间的确是数据分布不均匀，但是这种不均匀和梯度的不均匀不成比例，猜测是因为把太大的数值舍弃了的缘故（大数值应该在梯度训练中被考虑，而不是被认为是离群点）
 - imagenet数据resnet应该是224，改用官方模型吧
+###2019-5-23
+- pytorch0.3.0训练imagenet遇到MPI Bcast Truncted错误
+- 将每个数据画成图,全连接层数据变化范围较大
+- 读sketchML论文
+- 分别统计大数值和小数值的误差,大数值的误差比小数值少十倍。
+```
+big num error 0.20622697472572327, small num error 2.626340389251709
+```
+###2019-5-24
+- 读sketchML论文，思考每个类簇中如何降低每个bucket的误差。目前来看，大数值相对误差还可以控制，但是小数值的相对误差就有些大了
+
+| positive_error.max() | np.abs(negative_error).max() |small_score_error.max() | big_score_error.max() |
+| 115943.33 |90833.9 |115943.33 | 0.7291682 |
