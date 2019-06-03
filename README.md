@@ -188,4 +188,3 @@ big num error 0.20622697472572327, small num error 2.626340389251709
 - 二分查找
 - 归一化
 - 离群点用大的arraysize
-- 

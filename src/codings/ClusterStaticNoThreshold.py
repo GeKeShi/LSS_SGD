@@ -24,7 +24,8 @@ class ClusterStaticNoThreshold(object):
 			return False
 
 	def entropy_bin(self, points):
-		fq = stats.relfreq(points, numbins=10, defaultreallimits=(np.amin(points), np.amax(points)))
+		fq = stats.relfreq(points, numbins=100, defaultreallimits=(np.amin(points), np.amax(points)))
+		# print('entropy frequency', fq.frequency)
 		return stats.entropy(fq.frequency, base=2)
 
 	def entropy(self, points):
@@ -146,9 +147,13 @@ class ClusterStaticNoThreshold(object):
 		centerV = kmeans.cluster_centers_.reshape(-1)
 		# print(centerV)
 		clusterResults = []
+
 		# to do np.count()
 		for i in range(kmeansClusterNum):
-			clusterResults.append(np.extract(labels == i, clusterInput))
+			tmp_clusterresult = np.extract(labels == i, clusterInput)
+			clusterResults.append(tmp_clusterresult)
+			
+			# print('tmp clusterResults{}, max {}, min {}, mean {}, error rate {}', tmp_clusterresult,tmp_clusterresult.max(),tmp_clusterresult.min(), tmp_clusterresult.mean(), np.abs((tmp_clusterresult.max()-tmp_clusterresult.min())/tmp_clusterresult.min()))
 		# centerV = kmeans.cluster_centers_
 
 		# KMeansPlusPlusClusterer<oneDimData> clusterer = new KMeansPlusPlusClusterer<oneDimData>(kmeansClusterNum,maxIters,md); 

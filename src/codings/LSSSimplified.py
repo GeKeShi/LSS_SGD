@@ -82,6 +82,7 @@ class LSSSimplified(object):
             #  * init cluster center, cluster centroid
             #  */
             self.initClusterCenters(PositiveItems, positiveFrac, positiveclusterCenters, positiveclusterdensity, positiveclusterentropy)
+            print('positiveclusterCenters {}, positiveclusterdensity {}, positive entropy {}'.format(positiveclusterCenters, positiveclusterdensity, positiveclusterentropy))
 
         nonPositives = TrainCluster.getNonPositive(traces0)
 
@@ -96,6 +97,7 @@ class LSSSimplified(object):
             #  * init cluster center, cluster centroid
             #  */
             self.initClusterCenters(nonPositives, negativeFrac, nonpositiveclusterCenters, nonpositiveclusterdensity, nonpositiveclusterentropy)
+            print('nonpositiveclusterCenters {}, nonpositiveclusterdensity {}, nopositive entropy {}'.format(nonpositiveclusterCenters, nonpositiveclusterdensity, nonpositiveclusterentropy))
 
 
         # # //merge list
@@ -134,8 +136,8 @@ class LSSSimplified(object):
         #     addAll(list2, positiveclusterdensity);
         # }
         # double[] clusterdensity = Doubles.toArray(list2);
-        clusterdensity = np.concatenate((positiveclusterdensity, nonpositiveclusterdensity), axis=0)
-        clusterentropy = np.concatenate((positiveclusterentropy, nonpositiveclusterentropy), axis=0)
+        clusterdensity = np.concatenate((nonpositiveclusterdensity, positiveclusterdensity), axis=0)
+        clusterentropy = np.concatenate((nonpositiveclusterentropy, positiveclusterentropy), axis=0)
         
 
         # List<Double> list3 = new ArrayList<Double>();
@@ -151,7 +153,7 @@ class LSSSimplified(object):
         totalSum = self.clusterTotalSum(clusterCenters, clusterdensity, clusterentropy, self.clusterArrayChoiceMethod)
         # LOGGER.info("totalSum: " + totalSum);
         finalLeft = self.bucketCount
-
+        print('clustercenters {}, clusterdensity {}, clusterentropy {}'.format(clusterCenters, clusterdensity, clusterentropy))
         # densityTotalSum = np.sum(clusterdensity)
         # for (int i = 0; i < clusterdensity.length; i++) {
         #     densityTotalSum += clusterdensity[i];
@@ -168,7 +170,9 @@ class LSSSimplified(object):
             # //LOGGER.info("cluster: "+i+", "+arraySize);
             # //new array
             b = [LSSEntry() for i in range(arraySize)]
+            # print('array size', arraySize)
             self.LSSTable.append(b)
+            # print(self.LSSTable)
             # //tune the bucket size
             finalLeft -= arraySize
 
@@ -186,6 +190,18 @@ class LSSSimplified(object):
             clusterCenters[i] = centers[i].value
             clusterdensity[i] = centers[i].index * signFrac
             clusterentropy[i] = centers[i].entropyVal
+        cluster_center_max =  (np.abs(clusterCenters)).max()
+        density_sum = np.sum(clusterdensity)
+        entropy_sum = np.sum(clusterentropy)
+        print('before norm {}'.format(clusterentropy))
+        for i in range(len(centers)):
+            # clusterCenters[i] = clusterCenters[i]/Center_sum
+            clusterdensity[i] = clusterdensity[i]/density_sum
+            clusterentropy[i] = clusterentropy[i]/entropy_sum
+        # clusterCenters = clusterCenters/Center_sum
+        # clusterdensity = clusterdensity/density_sum
+        # clusterentropy = clusterentropy/entropy_sum
+        print('centersum {}, density sum {}, entropy sum {}, centers {}, density {}, entropy {}'.format(cluster_center_max, density_sum, entropy_sum,clusterCenters, clusterdensity, clusterentropy))
 
 # /**
 #      * append to the final
@@ -207,11 +223,12 @@ class LSSSimplified(object):
 #      * @return
 #      */
     def clusterTotalSum(self, clusterCenters, clusterdensity, clusterentropy, choiceArray):
+        cluster_center_max = (np.abs(clusterCenters)).max()
         f = 0
         for i in range(clusterCenters.size):
             if choiceArray == 1:
                 # //entropy*center
-                f += clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i]
+                f += clusterentropy[i] * abs((clusterCenters[i])/cluster_center_max) * clusterdensity[i]
             elif choiceArray == 2:
                 # //entropy*density
                 f += clusterentropy[i] * clusterdensity[i]
@@ -224,10 +241,11 @@ class LSSSimplified(object):
         return f
 
     def getArraySize(self, clusterCenters, clusterdensity, clusterentropy, i, choiceArray, totalSum):
+        cluster_center_max = (np.abs(clusterCenters)).max()
         if choiceArray == 1:
             # //entropy*center
-            print('getarrarysize:',clusterentropy[i] , clusterCenters[i] , clusterdensity[i], clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i], (totalSum))
-            return clusterentropy[i] * abs(clusterCenters[i]) * clusterdensity[i] / (totalSum)
+            print('getarrarysize:',clusterentropy[i] , clusterCenters[i] , clusterdensity[i], clusterentropy[i] * abs((clusterCenters[i])/cluster_center_max) * clusterdensity[i]/(totalSum))
+            return clusterentropy[i] * abs((clusterCenters[i])/cluster_center_max) * clusterdensity[i] / (totalSum)
         elif choiceArray == 2:
             # //entropy*density
             return clusterentropy[i] * clusterdensity[i] / totalSum
@@ -301,6 +319,7 @@ class LSSSimplified(object):
         for LSSTable_item in self.LSSTable:
             LSSTable_val_item = []
             for item in LSSTable_item:
+                print('(item.sum){}/(item.counter){}'.format(item.sum, item.counter))
                 LSSTable_val_item.append((item.sum)/(item.counter))
             print('LSStable_item: {}'.format(LSSTable_val_item))
             LSSTable_val.append(LSSTable_val_item)
