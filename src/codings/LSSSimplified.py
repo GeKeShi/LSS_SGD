@@ -231,7 +231,7 @@ class LSSSimplified(object):
                 f += clusterentropy[i] * abs((clusterCenters[i])/cluster_center_max) * clusterdensity[i]
             elif choiceArray == 2:
                 # //entropy*density
-                f += clusterentropy[i] * clusterdensity[i]
+                f += clusterentropy[i] *  abs((clusterCenters[i])/cluster_center_max)
             elif choiceArray == 3:
                 # //entropy
                 f += clusterentropy[i]
@@ -248,7 +248,7 @@ class LSSSimplified(object):
             return clusterentropy[i] * abs((clusterCenters[i])/cluster_center_max) * clusterdensity[i] / (totalSum)
         elif choiceArray == 2:
             # //entropy*density
-            return clusterentropy[i] * clusterdensity[i] / totalSum
+            return clusterentropy[i] *  abs((clusterCenters[i])/cluster_center_max) / totalSum
 
         elif choiceArray == 3:
             # //entropy

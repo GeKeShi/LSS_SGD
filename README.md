@@ -188,3 +188,11 @@ big num error 0.20622697472572327, small num error 2.626340389251709
 - 二分查找
 - 归一化
 - 离群点用大的arraysize
+ ###2019-6-3
+ - 离群点entropy计算，用所有的数据点？
+ - 如果不将离群点单独计算，会造成entropy=0，部分bucket里为空，需要修改getlsstable方法才能保证程序正确
+ - 数据归一化之后效果并不明显，修改arraysize计算方法，去掉density，但是大数值的arraysize=1
+ - 如何设计getarraysize的方法，是的大数值能够分得bucket多一些，而不是仅仅考虑到其entropy很小，density有没有用？
+ - 二值网络与signSGD一起训练
+ - 自适应的梯度量化方法
+ - 压缩感知
