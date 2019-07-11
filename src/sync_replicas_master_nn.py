@@ -17,6 +17,8 @@ from model_ops.vgg import *
 from model_ops.alexnet import *
 from model_ops.fc_nn import FC_NN, FC_NN_Split
 from model_ops.densenet import DenseNet
+from model_ops import vgg_imagenet
+
 
 from optim.adam import Adam
 from optim.sgd import SGD
@@ -24,10 +26,11 @@ from utils import decompress
 
 import torch
 import codings
+from torchvision.models import resnet, vgg
 
 STEP_START_ = 1
 # use compression tool to make it run faster
-_FAKE_SGD = True
+_FAKE_SGD = False
 
 def update_params_dist_version(param, avg_grad, learning_rate):
     '''
@@ -63,31 +66,43 @@ class GradientAccumulator(object):
         # we will update this counter dynamically during the training process
         # the length of this counter should be number of fc layers in the network
         # we used list to contain gradients of layers
-        self.gradient_aggregate_counter = []
-        self.model_index_range = []
+        self.gradient_aggregate_counter = 0
+        # self.model_index_range = []
         self.gradient_aggregator = []
         
+        # for param_idx, param in enumerate(module.parameters()):
+        #     tmp_aggregator = []
+        #     for worker_idx in range(num_worker):
+        #         _shape = param.size()
+        #         if len(_shape) == 1:
+        #             tmp_aggregator.append(bytearray(getsizeof(np.zeros((_shape[0]*2,)))*4))
+        #         else:
+        #             tmp_aggregator.append(bytearray(getsizeof(np.zeros(_shape))*4))
+        #     # initialize the gradient aggragator
+        #     self.gradient_aggregator.append(tmp_aggregator)
+        #     self.gradient_aggregate_counter.append(0)
+        #     self.model_index_range.append(param_idx)
         for param_idx, param in enumerate(module.parameters()):
-            tmp_aggregator = []
-            for worker_idx in range(num_worker):
-                _shape = param.size()#torch.size()
-                if len(_shape) == 1:
-                    tmp_aggregator.append(bytearray(getsizeof(np.zeros((_shape[0]*2,)))*4))
-                else:
-                    tmp_aggregator.append(bytearray(getsizeof(np.zeros(_shape))*4))
-            # initialize the gradient aggragator
-            # 每个参数、每个计算节点有一个缓冲区用于mpi irecv接收数据
+            module_size = 0
+            _shape = param.size()
+            if len(_shape) == 1:
+                # tmp_aggregator.append(bytearray(getsizeof(np.zeros((_shape[0]*2,)))*4))
+                module_size += getsizeof(np.zeros((_shape[0]*2,)))
+            else:
+                # tmp_aggregator.append(bytearray(getsizeof(np.zeros(_shape))*4))
+                module_size += getsizeof(np.zeros(_shape))
+        for worker_idx in range(num_worker):
+            tmp_aggregator = bytearray(module_size)
             self.gradient_aggregator.append(tmp_aggregator)
-            # 每个参数一个计数器
-            self.gradient_aggregate_counter.append(0)
-            self.model_index_range.append(param_idx)
+
+
 
     def meset_everything(self):
         self._meset_grad_counter()
         self._meset_grad_aggregator()
 
     def _meset_grad_counter(self):
-        self.gradient_aggregate_counter = [0 for _ in self.gradient_aggregate_counter]
+        self.gradient_aggregate_counter = 0
 
     def _meset_grad_aggregator(self):
         pass
@@ -132,16 +147,27 @@ class SyncReplicasMaster_NN(NN_Trainer):
 
         ############ will be deprecated soon #############################
         self._eval_batch_size = 1000
-
+        #print(self.__dict__)
         if kwargs['code'] == 'sgd':
             if not _FAKE_SGD:
                 self._coder = codings.svd.SVD(compress=False)
             else:
                 self._coder = codings.lossless_compress.LosslessCompress()
         elif kwargs['code'] == 'svd':
-            print("train.py, svd_rank =", self._svd_rank)
             self._coder = codings.svd.SVD(random_sample=False, rank=self._svd_rank,
                                    compress=True)
+            print("train.py, svd_rank =", self._svd_rank)
+        elif kwargs['code'] == 'qsgd':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(**qsgdkw)
+        elif kwargs['code'] == 'terngrad':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(scheme='terngrad', **qsgdkw)
+        elif kwargs['code'] == 'lss':
+            print("train.py with lss")
+            self._coder = codings.lss.LSS()
         else:
             raise ValueError('args.code not recognized')
 
@@ -149,17 +175,23 @@ class SyncReplicasMaster_NN(NN_Trainer):
         # build network
         if self.network_config == "LeNet":
             self.network=LeNet()
-        elif self.network_config == "ResNet18":
-            self.network=ResNet18(num_classes=num_classes)
+        elif self.network_config == "ResNet18_imagenet":
+            self.network=resnet.resnet18()
+        elif self.network_config == "ResNet34_imagenet":
+            self.network=resnet.resnet34()
         elif self.network_config == "ResNet34":
             self.network=ResNet34(num_classes=num_classes)
+        elif self.network_config == "ResNet50_imagenet":
+            self.network=resnet.resnet50()
         elif self.network_config == "FC":
             self.network=FC_NN()
         elif self.network_config == "DenseNet":
             self.network=DenseNet(growthRate=40, depth=190, reduction=0.5,
                             bottleneck=True, nClasses=10)
-        elif self.network_config == "VGG11":
-            self.network=vgg11_bn(num_classes)
+        elif self.network_config == "VGG19":
+            self.network=vgg.vgg19_bn()
+        elif self.network_config == "VGG16_imagenet":
+            self.network=vgg_imagenet.vgg16()
         elif self.network_config == "AlexNet":
             self.network=alexnet(num_classes=10)
 
@@ -190,34 +222,38 @@ class SyncReplicasMaster_NN(NN_Trainer):
             self.async_bcast_step()
 
             self.async_bcast_layer_weights_bcast()
-            
-            # set the gradient fetch step and gather the request
-            gradient_fetch_requests=self.async_fetch_gradient_start()
 
-            coded_msgs = {}
+            self.gather_cluster_model()
+            self._bcast_cluster_model()
+
+            # set the gradient fetch step and gather the request
+            # gradient_fetch_requests=self.async_fetch_gradient_start()
+            gradient_fetch_requests=self.async_fetch_total_gradient_start()
+
+            coded_msgs = []
             # wait for enough gradients to be aggregated:
             gather_start_time = time.time()
             while not enough_gradients_received:
                 status = MPI.Status()
                 source, code = MPI.Request.waitany(requests=gradient_fetch_requests, status=status)
-                layer_index = status.tag-88
-                if layer_index not in coded_msgs.keys():
-                    coded_msgs[layer_index] = [code]
-                else:
-                    coded_msgs[layer_index].append(code)
+                # layer_index = status.tag-88
+                # if layer_index not in coded_msgs.keys():
+                    # coded_msgs[layer_index] = [code]
+                # else:
+                    # coded_msgs[layer_index].append(code)
+                coded_msgs.append(code)
+                self.grad_accumulator.gradient_aggregate_counter += 1
                     
-                self.grad_accumulator.gradient_aggregate_counter[layer_index] += 1
-                    
-                #print(self.grad_accumulator.gradient_aggregate_counter)
-                #print('---------------------------------------------------------------------')
+                print(self.grad_accumulator.gradient_aggregate_counter)
+                print('---------------------------------------------------------------------')
                 
                 enough_gradients_received = True
-                for j in self.grad_accumulator.gradient_aggregate_counter:
-                    enough_gradients_received = enough_gradients_received and (j >= self._num_grad_to_collect)
+                enough_gradients_received = enough_gradients_received and (self.grad_accumulator.gradient_aggregate_counter >= self._num_grad_to_collect)
             gather_duration = time.time() - gather_start_time
+            print('master gather done')
 
             decode_start = time.time()
-            self._decode(coded_msgs)
+            self._decode_total_grad(coded_msgs)
             decode_dur = time.time() - decode_start
             # update `state_dict` in pytorch modules
             print("Master: Step: {}, Decode Cost: {}, Cur lr {}, Gather: {}".format(self.cur_step, decode_dur, self.lr, gather_duration))
@@ -234,16 +270,28 @@ class SyncReplicasMaster_NN(NN_Trainer):
             if self.cur_step % self.shrinkage_freq == 0:
                 self.shrink_counter += 1
                 self.lr = self._base_lr * self._lr_shrinkage ** self.shrink_counter
+    
+    
+    def gather_cluster_model(self):
+        if self.cur_step%10 == 1:
+            self.cluster_model = self.comm.recv(source=1, tag=20)
+            print('gather cluster model', self.cluster_model)
+        else:
+            pass
+    
+    def _bcast_cluster_model(self):
+        self.comm.bcast(self.cluster_model, root=0)
+        print('master node get bcast {}'.format(self.cluster_model))
 
     def _model_update(self):
         # gradient shipped from workers are averaged and update the model
-        self._grad_aggregate_buffer = map(lambda x: x / float(self._num_grad_to_collect), self._grad_aggregate_buffer)
+        # self._grad_aggregate_buffer = map(lambda x: x / float(self._num_grad_to_collect), self._grad_aggregate_buffer)
         self.optimizer.step(grads=self._grad_aggregate_buffer, cuda=self._enable_gpu)   
 
     def init_model_shapes(self):
         for p_index, p in enumerate(self.network.parameters()):
             self._model_shapes.append(p.size())
-            self._grad_aggregate_buffer.append(np.zeros(p.size()))
+            # self._grad_aggregate_buffer.append(np.zeros(p.size()))
 
     def async_bcast_step(self):
         req_list = []
@@ -278,7 +326,21 @@ class SyncReplicasMaster_NN(NN_Trainer):
                 layer_to_send = layer.data.cpu().numpy().astype(np.float64)
             else:
                 layer_to_send = layer.data.numpy().astype(np.float64)
-            self.comm.Bcast([layer_to_send, MPI.DOUBLE], root=0)
+            # self.comm.Bcast([layer_to_send, MPI.DOUBLE], root=0)
+            self.comm.Bcast(layer_to_send, root=0)
+            # print('step {} master send bcast param size {}'.format(self.cur_step, layer_to_send.size))
+           # self.comm.Barrier()
+
+
+    def async_fetch_total_gradient_start(self):
+        '''
+        make gradient fetch requests and return the request list
+        '''
+        gradient_fetch_requests = []
+        for k in range(self._num_grad_to_collect):
+            req = self.comm.irecv(self.grad_accumulator.gradient_aggregator[k], source=k+1, tag=88)
+            gradient_fetch_requests.append(req)
+        return gradient_fetch_requests
 
     def async_fetch_gradient_start(self):
         '''
@@ -297,6 +359,24 @@ class SyncReplicasMaster_NN(NN_Trainer):
         '''
         self._grad_aggregate_buffer[layer_idx] += gradient.numpy().astype(np.float64)
 
+    def aggregate_total_gradient(self, coded_msgs):
+        lss_table_list = []
+        keys_list = []
+        grad_number = coded_msgs[0]['flatten_size']
+        for code in coded_msgs:
+            code = pickle.loads(code)
+            lss_table = code['coded_data']
+            keysInGroup = codings.LSSSimplifiedCompressor.denseEncoders.decode(code['coded_index'], code['codebook'])
+            lss_table_list.append(lss_table)
+            keys_list.append(keysInGroup)
+        lss_table_tuple = tuple(lss_table_list)
+        keys_list = np.array(keys_list)
+        average_lss_table = []
+        for table_items in zip(*lss_table_tuple):
+            average_lss_table.append(np.average(table_items, axis=0).tolist())
+        keys_group = np.amax(keys_list,axis=0)
+        return average_lss_table, keys_group, grad_number
+
     def model_update(self, tmp_module):
         """write model fetched from parameter server to local model"""
         new_state_dict = {}
@@ -313,10 +393,11 @@ class SyncReplicasMaster_NN(NN_Trainer):
         self.network.load_state_dict(new_state_dict)
 
     def meset_grad_buffer(self):
-        for i in range(len(self._grad_aggregate_buffer)):
-            self._grad_aggregate_buffer[i][0] = np.zeros(self._grad_aggregate_buffer[i][0].shape)
-            if len(self._grad_aggregate_buffer[i])==2:
-                self._grad_aggregate_buffer[i][1] = np.zeros(self._grad_aggregate_buffer[i][1].shape)
+        # for i in range(len(self._grad_aggregate_buffer)):
+        #     self._grad_aggregate_buffer[i][0] = np.zeros(self._grad_aggregate_buffer[i][0].shape)
+        #     if len(self._grad_aggregate_buffer[i])==2:
+        #         self._grad_aggregate_buffer[i][1] = np.zeros(self._grad_aggregate_buffer[i][1].shape)
+        self._grad_aggregate_buffer = []
 
     def _decode(self, coded_msgs):
         # k: `layer_index` v: coded gradients
@@ -329,6 +410,26 @@ class SyncReplicasMaster_NN(NN_Trainer):
                 except AssertionError:
                     warnings.warn("shape dosen't match, should really be careful")
                 self.aggregate_gradient(gradient=grad, layer_idx=k)
+
+    def _decode_total_grad(self, coded_msgs):
+        grad = self._coder.decode(self.aggregate_total_gradient(coded_msgs))
+        accum_size = 0
+        for param_idx, param in enumerate(self.network.parameters()):
+            param_shape = param.size()
+            tmp_size = param.view(-1).size()[0]
+            self._grad_aggregate_buffer.append(grad[accum_size:accum_size+tmp_size].view(param_shape))
+            try:
+                assert (self._grad_aggregate_buffer[param_idx].size() == self._model_shapes[param_idx])
+            except AssertionError :
+                warnings.warn("shape dosen't match, should really be careful")
+            accum_size += tmp_size
+
+
+            
+
+
+
+
 
     def _generate_model_path(self):
         return self._train_dir+"model_step_"+str(self.cur_step)

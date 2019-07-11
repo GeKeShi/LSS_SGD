@@ -5,7 +5,7 @@ from scipy import stats
 import torch
 import time
 import math
-from .coding import Coding
+from coding import Coding
 
 import torch.nn.functional as F
 
@@ -33,7 +33,7 @@ class QSGD(Coding):
             code_buckets = []
             shape = v.shape
             neo_kwargs = {'neo_bucket_size': 0}
-            buckets = np.split(w, (w.shape[0] + bucket_size - 1) / bucket_size)
+            buckets = np.array_split(w, int((w.shape[0] + bucket_size - 1) / bucket_size))
             for bucket in buckets:
                 code = self.encode(bucket, **neo_kwargs)
                 code_buckets.append(code)

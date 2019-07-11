@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*
 import numpy as np
 from TrainCluster import *
 from ClusterStaticNoThreshold import *
 from LSSEntry import *
 import sys
-import xxhash
+# import xxhash
 
 class LSSSimplified(object):
     # /**
@@ -42,9 +43,10 @@ class LSSSimplified(object):
         self.bucketCount = _b
         # //expectedFP = _fp;
         # //scaleFactors = _scaleFactor;
+        self.LSSTable = []
 
         self.clusterArrayChoiceMethod = _clusterArrayChoiceMethod
-
+        self.center_split = _c
         # if 'LSSTable' in kwargs.keys():
         #     self.LSSTable = kwargs['LSSTable']
         # else:
@@ -126,7 +128,6 @@ class LSSSimplified(object):
         #  * set up bucket array by desity
         #  */
         # LSSTable = new ArrayList<LSSEntry[]>(clusterNum);
-        self.LSSTable = []
 
         # List<Double> list2 = new ArrayList<Double>();
         # if (nonpositiveclusterdensity != null) {
@@ -259,17 +260,77 @@ class LSSSimplified(object):
 
 
     def groupInputKV(self, flowValue, clusterCenters):
-        index = -1
-        vat = float("inf")
-        for i in range(clusterCenters.size):
-            v = abs(clusterCenters[i] - flowValue)
-            # //closer and same symbol
-            if clusterCenters[i] * flowValue >= 0:
-                if v < vat:
-                    vat = v
-                    index = i
-        return index
-
+        # line_index = -1
+        # vat = float("inf")
+        # for i in range(clusterCenters.size):
+        #     v = abs(clusterCenters[i] - flowValue)
+        #     # //closer and same symbol
+        #     if clusterCenters[i] * flowValue >= 0:
+        #         if v < vat:
+        #             vat = v
+        #             line_index = i
+        # return index
+        
+        #binsearch
+        rescenters = np.abs(clusterCenters) - abs(flowValue)
+        if flowValue > 0:
+            low = self.center_split
+            high =clusterCenters.size - 1
+            if rescenters[low] > 0:
+                return low
+            if rescenters[high] < 0:
+                return high       
+            while low < high:
+                mid = int((low + high)/2)
+                if rescenters[mid]<0:
+                    if rescenters[mid+1]<0:
+                        low = mid + 1
+                    else:
+                        index = mid if -(rescenters[mid]) < rescenters[mid+1] else mid+1
+                        # if line_index != index:
+                        #     print(flowValue)
+                        return index
+                elif rescenters[mid]>0:
+                    if rescenters[mid-1]>0:
+                        high = mid -1
+                    else:
+                        index = mid if rescenters[mid] < -(rescenters[mid-1]) else mid-1
+                        # if line_index != index:
+                        #     print(flowValue)
+                        return index
+                else:
+                    # if line_index != mid:
+                    #     print(flowValue)
+                    return mid
+        else:
+            low = 0
+            high =self.center_split - 1
+            if rescenters[low] < 0:
+                return low
+            if rescenters[high] > 0:
+                return high       
+            while low < high:
+                mid = int((low + high)/2)
+                if rescenters[mid]<0:
+                    if rescenters[mid-1]<0:
+                        high = mid - 1
+                    else:
+                        index = mid if -(rescenters[mid]) < rescenters[mid-1] else mid-1
+                        # if line_index != index:
+                        #     print(flowValue)
+                        return index
+                elif rescenters[mid]>0:
+                    if rescenters[mid+1]>0:
+                        low = mid + 1
+                    else:
+                        index = mid if rescenters[mid] < -(rescenters[mid+1]) else mid+1
+                        # if line_index != index:
+                        #     print(flowValue)
+                        return index
+                else:
+                    # if line_index != mid:
+                    #     print(flowValue)
+                    return mid
     # /**
     #  * helper function
     #  *
@@ -296,6 +357,7 @@ class LSSSimplified(object):
     #  */
     def insert(self, key, val, clusterCenters):
         clusterIndex = self.groupInputKV(val, clusterCenters)
+        # clusterIndex = np.searchsorted(val, clusterCenters)
         if clusterIndex < 0:
             return -1
         # //find an array containing the cluster of this value
@@ -319,9 +381,9 @@ class LSSSimplified(object):
         for LSSTable_item in self.LSSTable:
             LSSTable_val_item = []
             for item in LSSTable_item:
-                print('(item.sum){}/(item.counter){}'.format(item.sum, item.counter))
-                LSSTable_val_item.append((item.sum)/(item.counter))
-            print('LSStable_item: {}'.format(LSSTable_val_item))
+                # print('(item.sum){}/(item.counter){}'.format(item.sum, item.counter))
+                LSSTable_val_item.append(item.getAvgEstimator())
+            # print('LSStable_item: {}'.format(LSSTable_val_item))
             LSSTable_val.append(LSSTable_val_item)
         return LSSTable_val
     

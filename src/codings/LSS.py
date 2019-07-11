@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*
 import torch
 import time
 import math
@@ -7,21 +8,21 @@ from ClusterStaticNoThreshold import *
 from LSSSimplifiedCompressor import *
 from EncodeChoicer import *
 import random
-import pickle, sys, dill
+import pickle, sys
 from scipy.stats import scoreatpercentile
 import seaborn as sb
 import matplotlib.pyplot as plt
 
 class LSS(Coding):
-    def __init__(self, scheme='lss', bin_num=1000, cluster_num=30, *args, **kwargs):
+    def __init__(self, scheme='lss', bin_num=2000, cluster_num=5, *args, **kwargs):
         self.scheme = scheme
         self._random = random.random()
         self.values = None
         self.bin_num = bin_num
         self.cluster_Number = cluster_num
         self.compressor = None
-
-    def encode(self, v, **kwargs):
+    
+    def train_cluster(self, v):
         if isinstance(v, (torch.Tensor)):
             self.values = v.cpu().numpy().flat[:]
         elif isinstance(v, np.ndarray):
@@ -71,6 +72,64 @@ class LSS(Coding):
             clusterArrayChoiceMethod = 2
             # to do
             self.compressor = LSSSimplifiedCompressor(_expectedNumItems, _clusterCount, binNum, clusterArrayChoiceMethod, traces)
+            print('compressor size {}'.format(sys.getsizeof(self.compressor)))
+            return self.compressor
+        
+
+
+
+
+
+    def encode(self, v, compressor, **kwargs):
+        if isinstance(v, (torch.Tensor)):
+            self.values = v.cpu().numpy().flat[:]
+        elif isinstance(v, np.ndarray):
+            self.values = v.flat[:]
+        else:
+            raise ValueError("Object passed to encode not ndarray or torch.Tensor")
+        
+        n = np.size(self.values)
+        shape = np.shape(v)
+        # to do 
+        if n > 1000:
+            encode_flag = True
+        #     # ? int traceCount = Math.min((int) Math.round(n), 100000);
+        #     if n < 100000:
+        #         traces = self.values
+        #     else:
+        #         traceCount = 100000
+        #         # traces0 = np.zeros(traceCount)
+        #         traces0 = []
+        #         # sampled = 0
+
+        #         # for i in range(n):
+        #         #     if ClusterStaticNoThreshold.WhetherAdd2ClusterTrace(random.random(), n, traceCount):
+        #         #         traces0.append(self.values[i])
+        #         #         sampled += 1
+        #         for i in range(traceCount):
+        #             traces0.append(self.values[random.randint(0, n-1)])
+
+        #         # traces = traces0[0:sampled - 1]
+        #         traces = np.array(traces0)
+        #     print(traces.shape)
+        #     # traces = self.values
+            
+
+        #     # //Quantizer.QuantizationType quantType = Quantizer.QuantizationType.QUANTILE;
+        #     binNum = self.bin_num
+        #     # //Quantizer.DEFAULT_BIN_NUM;
+        #     _expectedNumItems = n
+            
+        #     # _clusterCount = LSSSimplifiedCompressor.clusterNumber
+        #     _clusterCount = self.cluster_Number
+            
+        #     # //key encoding
+        #     # encodeChoicer = EncodeChoicer.Huffman
+
+        #     # //cluster choice
+        #     clusterArrayChoiceMethod = 2
+            # to do
+            self.compressor = compressor
 
             traces = None
             # //compressor.compressDense(values);
@@ -79,9 +138,10 @@ class LSS(Coding):
             # coded_data = self.compressor.lssCKInstance.LSSTable
             coded_data = self.compressor.LSSTable_val
             coded_index = self.compressor.encoded_index
+            codebook = self.compressor.codebook
             # hash_list = self.compressor.lssCKInstance.LongHashFunction4PosHash
-            code = {'coded_data':coded_data, 'coded_index':coded_index, 'encode_flag':encode_flag, 'shape': shape, 'flatten_size':n}
-            print('size of coded data {}, size of encoded index {}'.format(sys.getsizeof(code['coded_data']), sys.getsizeof(code['coded_index'])))
+            code = {'coded_data':coded_data, 'coded_index':coded_index, 'codebook':codebook, 'encode_flag':encode_flag, 'flatten_size':n}
+            # print('size of coded data {}, size of encoded index {}, sizeof codebook {}'.format(sys.getsizeof(code['coded_data']), sys.getsizeof(code['coded_index']), sys.getsizeof(code['codebook'])))
             # code = {'coded_data':coded_data, 'coded_index':coded_index,
             #         'shape': shape}
         else:
@@ -92,7 +152,7 @@ class LSS(Coding):
             return code, data
         return code
 
-    def decode(self, code, cuda=True, **kwargs):
+    def decode(self, lsstable, keysingroup, flatten_size, cuda=True, **kwargs):
         """
         Decode the coding.
         ## NumPy
@@ -107,7 +167,7 @@ class LSS(Coding):
         ## PT GPU
         """
 
-        dValues = LSSSimplifiedCompressor.decompressDense(code)
+        dValues = LSSSimplifiedCompressor.decompressDense(lsstable, keysingroup, flatten_size)
         # time = System.currentTimeMillis() - t1;
         # LOG.info("DecodeAll:" + n + ", TotalDelay: " + time);
         # //LOG.info("LSS:\nFirst 10 values before: " + Arrays.toString(Arrays.copyOf(values, 10)));
@@ -124,13 +184,13 @@ class LSS(Coding):
         #         re = abs(dValues[i] - values[i]) / denominator
         #         # qSketch.update(re);
         #         rmse += (re) * (re)
-        dValues = torch.Tensor(dValues)
-        if cuda:
-            dValues = dValues.cuda()
+        # dValues = torch.Tensor(dValues)
+        # if cuda:
+        #     dValues = dValues.cuda()
         return dValues
 
 if __name__ == '__main__':
-    filepath = '/Users/keke/Documents/Project/Sketch_DNN/Collect_Gradients/ATOMO/test_grad/1/10/layer3.1.conv2.weight.npy'
+    filepath = '/Users/keke/Documents/Project/Sketch_DNN/Collect_Gradients/ATOMO/test_grad/1/10/total_grad.npy'
     origin_value = np.load(filepath)
     print(origin_value.shape)
     lss = LSS()

@@ -196,3 +196,165 @@ big num error 0.20622697472572327, small num error 2.626340389251709
  - 二值网络与signSGD一起训练
  - 自适应的梯度量化方法
  - 压缩感知
+
+ ###2019-6-12
+ - 二分法完成，将正负值分开寻找最近的数值，有利于寻找小数值的压缩准确性
+ - imagenet程序可以跑通，用Torchvision vgg11_bn以及resnet18,需要去掉测试代码，否则会报错
+
+ ###2019-6-13
+ - 编码时间包括了pickle时间和GPU->CPU的时间
+ - 多个节点总的上行通信时间应该用master的gather时间来考虑
+ - 下行通信时间占用时间很短？
+
+ ###2019-6-14
+ - Python2中应struct.pack来二进制化int
+ - 每一层的梯度数据量如果太少，会导致有一些bucket里面没有数据，因此允许LSStable里面LSSentry值返回0
+ - codebook传输问题解决
+ - 压缩后数据量比SVD大三分之一
+
+ ###2019-6-15
+ - blosc更换影响？cifar10训练
+ - cifar100提前结束？step
+ - 安装numpy测试lss
+
+ ###2019-6-18
+
+ ```python
+ class HorovodAllreduce(torch.autograd.Function):
+    """An autograd function that performs allreduce on a tensor."""
+
+    @staticmethod
+    def forward(ctx, tensor, average, name):
+        ctx.average = average
+        handle = allreduce_async(tensor, average, name)
+        return synchronize(handle)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return allreduce(grad_output, ctx.average), None, None
+
+
+def allreduce(tensor, average=True, name=None, compression=Compression.none):
+    """
+    A function that performs averaging or summation of the input tensor over all the
+    Horovod processes. The input tensor is not modified.
+
+    The reduction operation is keyed by the name. If name is not provided, an incremented
+    auto-generated name is used. The tensor type and shape must be the same on all
+    Horovod processes for a given name. The reduction will not start until all processes
+    are ready to send and receive the tensor.
+
+    This acts as a thin wrapper around an autograd function.  If your input
+    tensor requires gradients, then callings this function will allow gradients
+    to be computed and backpropagated.
+
+    Arguments:
+        tensor: A tensor to average and sum.
+        average: A flag indicating whether to compute average or summation,
+                 defaults to average.
+        name: A name of the reduction operation.
+        compression: Compression algorithm used during allreduce to reduce the amount
+                     of data sent during the each parameter update step.  Defaults to
+                     not using compression.
+
+    Returns:
+        A tensor of the same shape and type as `tensor`, averaged or summed across all
+        processes.
+    """
+    tensor_compressed, ctx = compression.compress(tensor)
+    summed_tensor_compressed = HorovodAllreduce.apply(tensor_compressed, average, name)
+    return compression.decompress(summed_tensor_compressed, ctx)
+```
+###6-26
+- cifar10/100 res34 batchsize 256/128
+- imagenet res50 batchsize 64
+- 查找zipml开源实现，bert模型训练梯度
+- 比较lss，sketchml，svd，qsgd，TernGrad，zipml等方法resnet18/34/50/vgg16/bert imagenet上固定压缩空间的准确率，取这些网络的梯度，将梯度整体拼接、卷积和全连接层分别拼接，进行压缩。先从原理上进行比较，理论分析各自的优缺点
+- cifar10/cifar100上的收敛效果
+- 论文框架，算法框架，创新点，哪些实验
+
+###6-27
+- lss训练太慢，cifar100需要resnet18 batchsize=512 node=24才能在10天训练到prec5=0.95
+- 采集梯度数据
+- gn6,gn9,gn10:resnet34 cifar10 svd / cifar100 svd
+- gn12,gn21,gn29:resnet34 cifar10 lss / cifar100 lss
+- gn2 #0-1: resnet18, 2-3: resnet34 batchsize 128
+- gn30 #0-1: resnet50, batchsize 90,  2-3: vgg16 batchsize 24
+
+###6-28
+- 将所有卷积层、全连接层的梯度画在同一层，每一层用不同颜色，观察取值变化范围
+- 将全部剃度进行压缩，去掉code中的shape，用模型本身的信息取解压
+- 将梯度分为卷积层和全连接层两部分进行压缩，用标志位进行标识
+
+###6-29
+- 修改为全梯度压缩版本，期望全梯度压缩版本可以有效降低压缩和解压时间
+- QSGD论文读懂
+- gn6,gn9,gn12:resnet34 cifar10 sgd 256/ cifar100 sgd 128
+- gn10,gn21,gn29:resnet34 cifar10 qsgd 256/ cifar100 qsgd 128
+
+
+###7-1
+- 关于大梯度值的优势，提取梯度，比较svd，qsgd，sketchml，lss这些梯度每个bucket中梯度的平均误差和方差的分布，通过比较这些误差来说明在大梯度处lss方法的优势
+- 在梯度的压缩效率上，和svd这些方法相比，应用sketchml的minmaxsketch方法
+- 在梯度压缩时间上，和sketchml进行比较
+- 需要在python上实现sketchml？或者比较这两种算法的算法复杂度
+- 单独做一个lss方法的PS架构，1.ps收集10步的梯度，构建聚类模型，将聚类模型同步到所有节点，2.worker收到聚类模型之后，将所有的梯度进行合并后进行压缩，然后将lsstable传输到ps进行merge 3.merge以及reduce之后的lsstable直接分发到所有的计算节点上，计算节点直接在lsstable上查询进行梯度更新 
+
+### 7-2
+- 实验现象：svd适合分层，分层的情况下，svd可以有更多的rank，例如合并梯度上rank=2，在3\*3\*512*512的卷积层梯度上，svd可以有18个rank，这也说明svd和pca一样利用了每一层梯度内的线性相关性；
+- 分层梯度上，9437328 -> lss 903489 mean error14.22773551940918, positive error 101.96533203125, negative error 73.4845962524414, big num error 0.23505018651485443, small num error 92.32752990722656
+  svd 1049102 mean error-35.144351959228516, positive error 270.7290954589844, negative error 338.3236999511719, big num error 1.6632803678512573, small num error 320.6239318847656
+  qsgd 1455806  mean error49.60647964477539, positive error 5416.9501953125, negative error 5481.15625, big num error 9.754800796508789, small num error 5734.82177734375
+- 在合并的梯度上进行压缩，lss方法更加适合；压缩率最高，44695944/3990709, mean error2.825591802597046, positive error 59.232295989990234, negative error 53.03730773925781, big num error 0.46975284814834595, small num error 59.04869842529297
+  svd 22348304, ean error-1.0423961877822876, positive error 4.691502094268799, negative error 6.776299953460693, big num error 0.31322455406188965, small num error 6.019195556640625
+  qsgd 6896406  mean error25.608240127563477, positive error 2317.140869140625, negative error 2227.846435546875, big num error 15.815743446350098, small num error 2390.8759765625
+
+- idea，现有压缩方法适合分层压缩，可以进行merge，将网络后面的通信密集型参数先行压缩和通信，同时继续进行反向传播，前面的梯度继续进行计算。可以在目前这个框架基础上设计实验和简单的梯度合并策略
+
+
+
+###7-3
+- sketchml中有zipml
+- APPtest.java文件中double toarray报错
+- jpyep错误未知，尝试将apptest的问题解决掉
+- server：send step, send parameter, (if step%m=0( 4.receive cluster center&lsstable, 5.train cluster centers&merge lsstable（每一类的几个hash table取最长的，作为merge后的table）, 6.bcast cluster center&lsstable)), gather encoded grad, (10.reduce encoded grad within code（将lsstable和keys取出来，table对应元素取平均，keys对应元素取最大值，得到reduce的lsstable和keys）, 11.用平均之后的lsstable和keys进行decode，decode得到的梯度按照模型每层参数大小存入buffer中等待进行梯度更新), sgd step, step + 1 
+- worker：receive step, receive parameter, forward&backward, (1.merge grad, (if step%m=0 (2.train cluster centre, 3.send cluster center & lss table/ bcast cluster center & lss table, 7.receive&update cluster center&lsstable), 8.encode grad), 9.send grad
+
+###7-4
+- 下行数据因为是模型参数，所以不能用梯度压缩的方法，即使是下行传输梯度，在sgd中进行查询更新参数的方法，其实和先进行全部查询，再进行更新的效率差不多，因此只需要研究上行数据的压缩效率即可知道下行数据如果也是传递梯度的话，会是什么样的压缩效率。但是下行数据是梯度的话，可以直接传输merge后的聚合梯度，减少了梯度解压和再次压缩的过程
+TODO
+- 修改encode方法，增加train_cluster(grad)函数返回cluster_model={'centers':centers,'lsstable':lsstable}, encode(grad)函数需要修改为encode(grad, cluster_model),使用聚类模型参数和lsstable来压缩
+- 修改decode函数，将解压后的梯度转化为每一层的梯度，存到grad_aggregate_buffer中，修改coder.decode方法,利用传进来的lsstable和keys只进行查询操作
+- 3个类别时候，霍夫曼编码的效率
+- 稀疏化的实现和效果，lss的稀疏化可以将聚类中心绝对值最小的1个类别认为是0，keysingroup进行稀疏化，这样对于稀疏化之后的数据，其精度仍然可以保持不变，但是需要考虑稀疏化数据keysingroup的聚合问题
+
+
+### 7-6
+- 修改LSS代码。增加traincluster函数，返回compressor，encode方法接收compressor进行压缩， 修改LSSSimplified.py文件，LSSTable函数__init__增加初始化LSSTable
+- 修改decode方法，接收lsstable，keysingroup, 在LSSSimplifiedcompressor中需要得到模型参数总共有多少
+- gradients_buffer memreset修改形状,修改buffer相关函数
+- 不太适用于SSP模型，但是分布式DL中应用的都是BSP模型，尤其是在通信开销比较少，DL是一个非凸问题，参考Chen, Jianmin, Xinghao Pan, Rajat Monga, Samy Bengio, and Rafal Jozefowicz. “Revisiting Distributed Synchronous SGD.” ArXiv:1604.00981 [Cs], April 4, 2016. http://arxiv.org/abs/1604.00981.   Cui, Henggang, Hao Zhang, Gregory R. Ganger, Phillip B. Gibbons, and Eric P. Xing. “GeePS: Scalable Deep Learning on Distributed GPUs with a GPU-Specialized Parameter Server.” In Proceedings of the Eleventh European Conference on Computer Systems, 4:1–4:16. EuroSys ’16. New York, NY, USA: ACM, 2016. https://doi.org/10.1145/2901318.2901323.
+
+### 7-8
+- 修改clustermodel bcast 为isend
+- 解决mpi段错误
+- 压缩后的数据量和getsizeof不相符，仅能压缩四倍
+- 压缩时间很长的问题
+
+### 7-10
+- mpi 报错是因为bucket太大，超过500就报错，因此需要将compressor变成字典
+- code_data在linux系统上比mac上的huffman编码大了4倍
+- merge key的方法，取最大值的方法不行，变化太大，改为取聚类类别int值的均值，准确的应该是计算相应聚类中心的加权平均，得用cuda来做。因此merge key的具体方法仍然需要讨论
+- 用其他worker的clustermodel是可行的，
+
+### 7-11
+- keys用bitmap来代替，bitmap可以进行按位或操作，以此进行keys merge
+
+
+
+
+
+
+
+
+

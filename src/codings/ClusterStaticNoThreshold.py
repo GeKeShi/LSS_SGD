@@ -4,6 +4,7 @@ import random
 from scipy import stats
 from Pair import *
 from sklearn.cluster import KMeans
+from scipy.cluster.vq import kmeans2
 
 class ClusterStaticNoThreshold(object):
 
@@ -35,7 +36,7 @@ class ClusterStaticNoThreshold(object):
 
 	def selectThreshold(self, points):
 		pctVal = np.percentile(points, self.pctThreshold)
-		entropyVal = self.entropy_bin(np.extract(points>pctVal, points))
+		entropyVal = self.entropy(np.extract(points>pctVal, points))
 		return [pctVal, entropyVal]
 	# /**
 	# 	 * init cluster, return centroids
@@ -142,9 +143,13 @@ class ClusterStaticNoThreshold(object):
 		# //LOG.info("center: "+ center[0].value);
 		
 		# ManhattanDistance md = new ManhattanDistance();
-		kmeans = KMeans(n_clusters = kmeansClusterNum).fit(clusterInput.reshape(-1,1))
-		labels = kmeans.labels_
-		centerV = kmeans.cluster_centers_.reshape(-1)
+		# kmeans = KMeans(n_clusters = kmeansClusterNum).fit(clusterInput.reshape(-1,1))
+		# labels = kmeans.labels_
+		# centerV = kmeans.cluster_centers_.reshape(-1)
+
+		centerV, labels = kmeans2(data=clusterInput.reshape(-1,1), k=kmeansClusterNum, minit='++')
+		# print('centerv shape{}'.format(centerV.shape))
+		centerV.reshape(-1)
 		# print(centerV)
 		clusterResults = []
 
@@ -170,8 +175,8 @@ class ClusterStaticNoThreshold(object):
 			# //center
 				# //cluster centers to do
 			center.append(Pair(float(clusterResults[i].size)/totalPoints,
-					centerV[i],self.entropy_bin(clusterResults[i])))
-			print('Pair:',float(clusterResults[i].size)/totalPoints, centerV[i], self.entropy_bin(clusterResults[i]))
+					centerV[i],self.entropy(clusterResults[i])))
+			print('Pair:',float(clusterResults[i].size)/totalPoints, centerV[i], self.entropy(clusterResults[i]))
 				# //LOG.info("center: "+ centerV.getPoint()[0]);
 				# //all nodes
 	# //		    	for(oneDimData oneD: clusterResults.get(i).getPoints()){

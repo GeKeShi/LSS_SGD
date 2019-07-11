@@ -11,12 +11,15 @@ from model_ops.vgg import *
 from model_ops.alexnet import *
 from model_ops.fc_nn import FC_NN, FC_NN_Split
 from model_ops.densenet import DenseNet
+from model_ops import vgg_imagenet
 
 from utils import compress
 import codings
 
 import torch
 from torch.autograd import Variable
+import os
+from torchvision.models import resnet, vgg
 
 import time
 from datetime import datetime
@@ -26,7 +29,7 @@ import pickle
 
 STEP_START_ = 1
 # use compression tool to make it run faster
-_FAKE_SGD = True
+_FAKE_SGD = False
 TAG_LIST_ = [i*30 for i in range(50000)]
 
 def prepare_grad_list(params):
@@ -91,7 +94,9 @@ class ModelBuffer(object):
         self.recv_buf = []
         self.layer_cur_step = []
         for param_idx, param in enumerate(network.parameters()):
+            # self.recv_buf.append(np.empty([i*2 for i in param.size()]))
             self.recv_buf.append(np.zeros(param.size()))
+            # print(param.size())
             self.layer_cur_step.append(0)
 
 
@@ -133,6 +138,17 @@ class DistributedWorker(NN_Trainer):
             print("train.py, svd_rank =", self._svd_rank)
             self._coder = codings.svd.SVD(random_sample=True, 
                 rank=self._svd_rank, compress=True)
+        elif kwargs['code'] == 'qsgd':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(**qsgdkw)
+        elif kwargs['code'] == 'terngrad':
+            print("train.py, quantization_level =", self._quantization_level)
+            qsgdkw = {'quantization_level':self._quantization_level}
+            self._coder = codings.qsgd.QSGD(scheme='terngrad', **qsgdkw)
+        elif kwargs['code'] == 'lss':
+            print("train.py with lss")
+            self._coder = codings.lss.LSS()
         else:
             raise ValueError('args.code not recognized')
 
@@ -140,17 +156,23 @@ class DistributedWorker(NN_Trainer):
         # build network
         if self.network_config == "LeNet":
             self.network=LeNet()
-        elif self.network_config == "ResNet18":
-            self.network=ResNet18(num_classes=num_classes)
+        elif self.network_config == "ResNet18_imagenet":
+            self.network=resnet.resnet18()
+        elif self.network_config == "ResNet34_imagenet":
+            self.network=resnet.resnet34()
         elif self.network_config == "ResNet34":
             self.network=ResNet34(num_classes=num_classes)
+        elif self.network_config == "ResNet50_imagenet":
+            self.network=resnet.resnet50()
         elif self.network_config == "FC":
             self.network=FC_NN()
         elif self.network_config == "DenseNet":
             self.network=DenseNet(growthRate=40, depth=190, reduction=0.5,
                             bottleneck=True, nClasses=10)
-        elif self.network_config == "VGG11":
-            self.network=vgg11_bn(num_classes)
+        elif self.network_config == "VGG19":
+            self.network=vgg.vgg19_bn()
+        elif self.network_config == "VGG16_imagenet":
+            self.network=vgg_imagenet.vgg16()
         elif self.network_config == "AlexNet":
             self.network=alexnet(num_classes=10)
 
@@ -230,21 +252,27 @@ class DistributedWorker(NN_Trainer):
                     loss = self.criterion(logits, y_batch)
 
                     epoch_avg_loss += loss.data[0]
+                    print('rank {} forward done'.format(self.rank))
 
                     # backward step
                     backward_start_time = time.time()
                     loss.backward()
                     comp_dur = time.time() - comp_start
+                    print('rank {} backward done'.format(self.rank))
 
                     # gradient encoding step
                     encode_start = time.time()
-                    msgs,_msg_counter = self._encode()
+                    # msgs,_msg_counter = self._encode()
+                    msgs,_msg_counter = self._encode_total_grad()
                     encode_dur = time.time() - encode_start
+                    print('rank {} encode done'.format(self.rank))
 
                     # communication step
                     comm_start = time.time()
-                    self._send_grads(msgs)
+                    # self._send_grads(msgs)
+                    self._send_total_grad(msgs)
                     comm_dur = time.time()-comm_start
+                    print('rank {} send grad done'.format(self.rank))
 
                     prec1, prec5 = accuracy(logits.data, y_batch.data, topk=(1, 5))
                     if self._enable_gpu:
@@ -253,12 +281,12 @@ class DistributedWorker(NN_Trainer):
                         prec1, prec5 = prec1.numpy()[0], prec5.numpy()[0]
                     # on the end of a certain iteration
                     print('Worker: {}, Step: {}, Epoch: {} [{}/{} ({:.0f}%)], Loss: {:.4f}, Time Cost: {:.4f}, Comp: {:.4f}, Encode: {: .4f}, Comm: {: .4f}, Msg(MB): {: .4f}, Prec@1: {: .4f}, Prec@5: {: .4f}'.format(
-                        self.rank, self.cur_step, num_epoch, batch_idx * self.batch_size, len(train_loader.dataset), 
-                        (100. * (batch_idx * self.batch_size) / len(train_loader.dataset)), loss.data[0], time.time()-iter_start_time, 
+                        self.rank, self.cur_step, num_epoch, (batch_idx+1) * self.batch_size, len(train_loader.dataset), 
+                        (100. * ((batch_idx+1) * self.batch_size) / len(train_loader.dataset)), loss.data[0], time.time()-iter_start_time, 
                         comp_dur, encode_dur, comm_dur, _msg_counter/(1024.0**2), prec1, prec5))
                     # break here to fetch data then enter fetching step loop again
-                    if self.cur_step%self._eval_freq==0:
-                        self._evaluate_model(test_loader)
+                    # if self.cur_step%self._eval_freq==0:
+                    #     self._evaluate_model(test_loader)
                     break
 
     def init_recv_buf(self):
@@ -277,7 +305,12 @@ class DistributedWorker(NN_Trainer):
         for layer_idx, layer in enumerate(self.model_recv_buf.recv_buf):
             if self.model_recv_buf.layer_cur_step[layer_idx] < self.cur_step:
                 layers_to_update.append(layer_idx)
-                self.comm.Bcast([self.model_recv_buf.recv_buf[layer_idx], MPI.DOUBLE], root=0)
+                # self.comm.Bcast([self.model_recv_buf.recv_buf[layer_idx], MPI.DOUBLE], root=0)
+               # self.comm.Barrier()
+                self.comm.Bcast(self.model_recv_buf.recv_buf[layer_idx], root=0)
+                # print('step {} rank {} recieve bcast param size {}'.format(self.cur_step, self.rank, self.model_recv_buf.recv_buf[layer_idx].size))
+
+
         weights_to_update = []
         for req_idx, layer_idx in enumerate(layers_to_update):
             weights = self.model_recv_buf.recv_buf[req_idx]
@@ -301,6 +334,7 @@ class DistributedWorker(NN_Trainer):
             if "running_mean" in key_name or "running_var" in key_name:
                 tmp_dict={key_name: param}
             else:
+                #print(self.rank,param_idx,key_name,param.size(),model_counter_,weights_to_update[model_counter_].shape)
                 assert param.size() == weights_to_update[model_counter_].shape
                 if self._enable_gpu:
                     tmp_dict = {key_name: torch.from_numpy(weights_to_update[model_counter_]).cuda()}
@@ -310,22 +344,75 @@ class DistributedWorker(NN_Trainer):
             new_state_dict.update(tmp_dict)
         self.network.load_state_dict(new_state_dict)
 
+    def _encode_total_grad(self):
+        grad_list = []
+        _msg_counter = 0
+        def __count_msg_sizes(msg):
+            return len(msg)
+        # save grad
+        # if self.cur_step%100 == 0:
+        #     path = os.path.join('imagenet_'+self.network_config, str(self.rank), str(self.cur_step))
+        #     os.makedirs(path)
+
+        # param_name = self.network.named_parameters()
+        for p_index, p in self.network.named_parameters():
+            if self._enable_gpu:
+                grad = p.grad.data.view(-1).cpu().numpy().astype(np.float32)
+            else:
+                grad = p.grad.data.view(-1).numpy().astype(np.float32)
+            # save grad
+            # if self.cur_step%100 == 0:
+                # np.save(os.path.join(path, p_index), grad)
+            grad_list.append(grad)
+            
+        total_grad = np.concatenate(grad_list)
+        print('conca total grad {}'.format(total_grad.size))
+        if self.cur_step%10 == 1:
+            if self.rank==1:
+                cluster_model = self._coder.train_cluster(total_grad)
+                self.comm.send(cluster_model, dest=0, tag=20)
+            else:
+                cluster_model = None
+            self.comm.bcast(cluster_model, root=0)
+            print('rank {} get bcast {}'.format(self.rank, cluster_model))
+        coded = self._coder.encode(total_grad, cluster_model)
+        pickled = pickle.dumps(coded)
+        # print('worker {} encode {}'.format(self.rank, p_index))
+        byte_code = bytearray(pickled)
+        _msg_counter = __count_msg_sizes(byte_code)
+        return byte_code, _msg_counter
+
     def _encode(self):
         msgs = []
         _msg_counter = 0
         def __count_msg_sizes(msg):
             return len(msg)
-        for p_index, p in enumerate(self.network.parameters()):
+        # save grad
+        if self.cur_step%100 == 0:
+            path = os.path.join('imagenet_'+self.network_config, str(self.rank), str(self.cur_step))
+            os.makedirs(path)
+
+        # param_name = self.network.named_parameters()
+        for p_index, p in self.network.named_parameters():
             if self._enable_gpu:
                 grad = p.grad.data.cpu().numpy().astype(np.float32)  
             else:
                 p.grad.data.numpy().astype(np.float32)
+            # save grad
+            if self.cur_step%100 == 0:
+                np.save(os.path.join(path, p_index), grad)
+
             coded = self._coder.encode(grad)
             pickled = pickle.dumps(coded)
+            # print('worker {} encode {}'.format(self.rank, p_index))
             byte_code = bytearray(pickled)
             _msg_counter+=__count_msg_sizes(byte_code)
             msgs.append(byte_code)
         return msgs, _msg_counter
+
+    def _send_total_grad(self, msgs):
+        req_isend = self.comm.isend(msgs, dest=0, tag=88)
+        req_isend.wait()
 
     def _send_grads(self, msgs):
         req_send_check = []
@@ -353,7 +440,7 @@ class DistributedWorker(NN_Trainer):
                 data, target = Variable(data, volatile=True), Variable(y_batch)
             
             output = self.network(data)
-            test_loss += F.nll_loss(F.log_softmax(output), target, size_average=False).data[0]
+            # test_loss += F.nll_loss(F.log_softmax(output), target, size_average=False).data[0]
 
             prec1_tmp, prec5_tmp = accuracy(output.data, target.data, topk=(1, 5))
             if self._enable_gpu:
@@ -365,9 +452,8 @@ class DistributedWorker(NN_Trainer):
             batch_counter_ += 1
         prec1 = prec1_counter_ / batch_counter_
         prec5 = prec5_counter_ / batch_counter_
-        test_loss /= len(test_loader.dataset)
-        print('Test set: Step: {}, Average loss: {:.4f}, Prec@1: {} Prec@5: {}'.format(self.cur_step, 
-                                                                            test_loss, prec1, prec5))
+        # test_loss /= len(test_loader.dataset)
+        print('Test set: Step: {}, Prec@1: {} Prec@5: {}'.format(self.cur_step, prec1, prec5))
 
 if __name__ == "__main__":
     # this is only a simple test case

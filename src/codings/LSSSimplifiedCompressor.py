@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*
 from LSSSimplified import *
 # from VectorCompressor import *
 import numpy as np
@@ -61,6 +62,7 @@ class LSSSimplifiedCompressor(object):
 		# elif encodeChoice == encodeChoicer.Huffman:			
 		# 	self.denseEncoders = HuffmanEncoder()
 		self.encoded_index = None
+		self.codebook = None
 		self.LSSTable_val = None
 		self.NumOfItems = 0
 		self.N = 0
@@ -93,7 +95,7 @@ class LSSSimplifiedCompressor(object):
 		#//value index
 		#long t2 = System.currentTimeMillis();
 		current_time = time.time()
-		self.encoded_index = LSSSimplifiedCompressor.denseEncoders.encode(index.tolist())
+		self.codebook, self.encoded_index = LSSSimplifiedCompressor.denseEncoders.encode(index.tolist())
 		print('encode index time:', time.time()-current_time)
 
 		#long t3 = System.currentTimeMillis();
@@ -107,30 +109,30 @@ class LSSSimplifiedCompressor(object):
 		self.compressDense(values)
 
 	@staticmethod
-	def decompressDense(code):
-		if code['encode_flag']==True:
-			vals = np.zeros(code['flatten_size'])
-			# long t1 = System.currentTimeMillis();
-			# //find keys in this array
-			# int[] keysInGroup =this.denseEncoders.decode();
-			keysInGroup = LSSSimplifiedCompressor.denseEncoders.decode(code['coded_index'])
-			coded_data = code['coded_data']
-			# hash_list = code['hash_list']
-			# long t2 = System.currentTimeMillis();
-			for keyIndex in range(len(keysInGroup)):
-				keyVal = keyIndex+1
-				arrayIndex = keysInGroup[keyIndex]
-				# //Key key =new Key(ByteBuffer.allocate(4).putInt(keyVal).array());				
-				
-				# //index should be smaller by one
-				vals[keyVal - 1] = LSSSimplified.query_val(keyVal.to_bytes(4, byteorder='big'), arrayIndex, coded_data)
-			# long t3 = System.currentTimeMillis();
-			# LOGGER.info("decodeKey: "+(t2-t1)+", sketch: "+(t3-t2));
-			vals = vals.reshape(code['shape'])
-			keysInGroup = None
-			return vals
-		else:
-			return code['coded_data']
+	def decompressDense(lsstable, keysInGroup, grad_number):
+		# if code['encode_flag']==True:
+		vals = np.zeros(grad_number)
+		# long t1 = System.currentTimeMillis();
+		# //find keys in this array
+		# int[] keysInGroup =this.denseEncoders.decode();
+		# keysInGroup = LSSSimplifiedCompressor.denseEncoders.decode(code['coded_index'], code['codebook'])
+		coded_data = lsstable
+		# hash_list = code['hash_list']
+		# long t2 = System.currentTimeMillis();
+		for keyIndex in range(len(keysInGroup)):
+			keyVal = keyIndex+1
+			arrayIndex = keysInGroup[keyIndex]
+			# //Key key =new Key(ByteBuffer.allocate(4).putInt(keyVal).array());				
+			
+			# //index should be smaller by one
+			vals[keyVal - 1] = LSSSimplified.query_val(keyVal.to_bytes(4, byteorder='big'), arrayIndex, coded_data)
+		# long t3 = System.currentTimeMillis();
+		# LOGGER.info("decodeKey: "+(t2-t1)+", sketch: "+(t3-t2));
+		# vals = vals.reshape(code['shape'])
+		keysInGroup = None
+		return vals
+		# else:
+			# return code['coded_data']
 
 
 	 

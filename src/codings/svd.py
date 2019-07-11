@@ -6,8 +6,8 @@ import sys
 import time
 import torch
 
-from .coding import Coding
-from .utils import nuclear_indicator, l1_indicator
+from coding import Coding
+from utils import nuclear_indicator, l1_indicator
 
 def _resize_to_2d(x):
     """
@@ -68,7 +68,7 @@ def _sample_svd(s, rank=0):
 
 
 class SVD(Coding):
-    def __init__(self, compress=True, rank=0, random_sample=True,
+    def __init__(self, compress=True, rank=0, random_sample=False,
                  fetch_indicator=None, *args, **kwargs):
         self.svd_rank = rank
         self.random_sample = random_sample
@@ -93,7 +93,7 @@ class SVD(Coding):
 
         if ndims == 2:
             u, s, vT = LA.svd(grad, full_matrices=False)
-
+            print('svd rank', s.shape)
             if self.__fetch_indicator:
                 nuclear_indicator = nuclear_indicator(grad, s)
                 l1_indicator = l1_indicator(grad)
@@ -111,7 +111,9 @@ class SVD(Coding):
                 s = s[:self.svd_rank]
                 #  v = v[:, :self.svd_rank]
                 vT = vT[:self.svd_rank, :]
-
+            print({'u': u,'u shape': u.shape,  's': s, 'vT': vT,'vt shape': vT.shape, 'orig_size': orig_size,
+                    'reshaped': reshaped_flag, 'encode': True,
+                    'rank': self.svd_rank})
             return {'u': u, 's': s, 'vT': vT, 'orig_size': orig_size,
                     'reshaped': reshaped_flag, 'encode': True,
                     'rank': self.svd_rank}
