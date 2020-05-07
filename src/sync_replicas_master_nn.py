@@ -27,6 +27,8 @@ from utils import decompress
 import torch
 import codings
 from torchvision.models import resnet, vgg
+from scipy import stats
+from codings.Bitmap import BitMap
 
 STEP_START_ = 1
 # use compression tool to make it run faster
@@ -82,17 +84,22 @@ class GradientAccumulator(object):
         #     self.gradient_aggregator.append(tmp_aggregator)
         #     self.gradient_aggregate_counter.append(0)
         #     self.model_index_range.append(param_idx)
+        module_size = 0
         for param_idx, param in enumerate(module.parameters()):
-            module_size = 0
             _shape = param.size()
+            print(_shape)
             if len(_shape) == 1:
                 # tmp_aggregator.append(bytearray(getsizeof(np.zeros((_shape[0]*2,)))*4))
-                module_size += getsizeof(np.zeros((_shape[0]*2,)))
+                module_size += getsizeof(np.zeros((_shape[0],)))
+                print('module size {}'.format(module_size))
             else:
                 # tmp_aggregator.append(bytearray(getsizeof(np.zeros(_shape))*4))
                 module_size += getsizeof(np.zeros(_shape))
+                print('module size {}'.format(module_size))
+
+        print('module size {}'.format(module_size*4))
         for worker_idx in range(num_worker):
-            tmp_aggregator = bytearray(module_size)
+            tmp_aggregator = bytearray(module_size*4)
             self.gradient_aggregator.append(tmp_aggregator)
 
 
@@ -222,9 +229,10 @@ class SyncReplicasMaster_NN(NN_Trainer):
             self.async_bcast_step()
 
             self.async_bcast_layer_weights_bcast()
-
-            self.gather_cluster_model()
-            self._bcast_cluster_model()
+            if self.cur_step%10 == 1:
+                # self.gather_cluster_model()
+                self.gather_bcast_cluster_model()
+            
 
             # set the gradient fetch step and gather the request
             # gradient_fetch_requests=self.async_fetch_gradient_start()
@@ -236,6 +244,7 @@ class SyncReplicasMaster_NN(NN_Trainer):
             while not enough_gradients_received:
                 status = MPI.Status()
                 source, code = MPI.Request.waitany(requests=gradient_fetch_requests, status=status)
+                print('recieve {} code {}'.format(source, getsizeof(code)))
                 # layer_index = status.tag-88
                 # if layer_index not in coded_msgs.keys():
                     # coded_msgs[layer_index] = [code]
@@ -273,15 +282,24 @@ class SyncReplicasMaster_NN(NN_Trainer):
     
     
     def gather_cluster_model(self):
-        if self.cur_step%10 == 1:
-            self.cluster_model = self.comm.recv(source=1, tag=20)
-            print('gather cluster model', self.cluster_model)
-        else:
-            pass
+
+        self.cluster_model = pickle.loads(self.comm.recv(source=1, tag=20))
+        print('gather cluster model', self.cluster_model)
+
     
-    def _bcast_cluster_model(self):
-        self.comm.bcast(self.cluster_model, root=0)
-        print('master node get bcast {}'.format(self.cluster_model))
+    def gather_bcast_cluster_model(self):
+        # self.comm.bcast(self.cluster_model, root=0)
+        compressor = self.comm.recv(source=1, tag=20)
+        print('gather cluster model', getsizeof(compressor))
+
+        req_list = []
+        for i in range(self.world_size):
+            if i != 0 and i != 1:
+                req_list.append(self.comm.isend(bytearray(compressor), dest=i, tag=30))
+        for i in range(len(req_list)):
+            req_list[i].wait()
+            print('master node isend')
+        print('master node send')
 
     def _model_update(self):
         # gradient shipped from workers are averaged and update the model
@@ -340,6 +358,7 @@ class SyncReplicasMaster_NN(NN_Trainer):
         for k in range(self._num_grad_to_collect):
             req = self.comm.irecv(self.grad_accumulator.gradient_aggregator[k], source=k+1, tag=88)
             gradient_fetch_requests.append(req)
+        print(gradient_fetch_requests)
         return gradient_fetch_requests
 
     def async_fetch_gradient_start(self):
@@ -362,20 +381,32 @@ class SyncReplicasMaster_NN(NN_Trainer):
     def aggregate_total_gradient(self, coded_msgs):
         lss_table_list = []
         keys_list = []
-        grad_number = coded_msgs[0]['flatten_size']
+        # grad_number = coded_msgs[0]['flatten_size']
         for code in coded_msgs:
             code = pickle.loads(code)
+            grad_number = code['flatten_size']
             lss_table = code['coded_data']
-            keysInGroup = codings.LSSSimplifiedCompressor.denseEncoders.decode(code['coded_index'], code['codebook'])
+            keysInGroup = code['coded_index']
+            lsstable_size = code['lsstable_size']
+            print(keysInGroup[:100])
             lss_table_list.append(lss_table)
             keys_list.append(keysInGroup)
-        lss_table_tuple = tuple(lss_table_list)
-        keys_list = np.array(keys_list)
-        average_lss_table = []
-        for table_items in zip(*lss_table_tuple):
-            average_lss_table.append(np.average(table_items, axis=0).tolist())
-        keys_group = np.amax(keys_list,axis=0)
-        return average_lss_table, keys_group, grad_number
+        lss_table_array = np.array(lss_table_list)
+        keys_list = tuple(keys_list)
+        average_lss_table = np.mean(lss_table_array, axis=0, dtype=np.float32)
+        # for table_items in zip(*lss_table_tuple):
+            # average_lss_table.append(np.average(table_items, axis=0).tolist())
+        # keys_group = np.amax(keys_list,axis=0)
+        keys_group = BitMap.merge_bitmap(keys_list)
+        # keys_group = np.mean(keys_list, axis=0, dtype=int)
+        print(keys_group[:100])
+        # acc = 0
+        # for item in keys_list:
+        #     acc += np.sum(map(lambda x, y: x==y, keys_group, item))/keys_group.size
+        #     print(acc)
+        # acc /= len(keys_list)
+        # print('keys acc {}'.format(acc))
+        return average_lss_table, keys_group, grad_number, lsstable_size
 
     def model_update(self, tmp_module):
         """write model fetched from parameter server to local model"""
@@ -412,16 +443,20 @@ class SyncReplicasMaster_NN(NN_Trainer):
                 self.aggregate_gradient(gradient=grad, layer_idx=k)
 
     def _decode_total_grad(self, coded_msgs):
-        grad = self._coder.decode(self.aggregate_total_gradient(coded_msgs))
+        average_lss_table, keys_group, grad_number, lsstable_size= self.aggregate_total_gradient(coded_msgs)
+        grad = self._coder.decode(average_lss_table, keys_group, grad_number, lsstable_size)
+        print(grad.size)
         accum_size = 0
         for param_idx, param in enumerate(self.network.parameters()):
             param_shape = param.size()
             tmp_size = param.view(-1).size()[0]
-            self._grad_aggregate_buffer.append(grad[accum_size:accum_size+tmp_size].view(param_shape))
+            print(param_shape)
+            self._grad_aggregate_buffer.append(grad[accum_size:accum_size+tmp_size].reshape(param_shape))
             try:
-                assert (self._grad_aggregate_buffer[param_idx].size() == self._model_shapes[param_idx])
+                assert (self._grad_aggregate_buffer[param_idx].shape == self._model_shapes[param_idx])
             except AssertionError :
                 warnings.warn("shape dosen't match, should really be careful")
+                print(self._grad_aggregate_buffer[param_idx].shape, self._model_shapes[param_idx])
             accum_size += tmp_size
 
 

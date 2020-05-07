@@ -189,6 +189,7 @@ class LSSSimplified(object):
         centers = test.KPPCluster(traces)
         for i in range(len(centers)):
             clusterCenters[i] = centers[i].value
+            # the fraction of cluster in total gradients data
             clusterdensity[i] = centers[i].index * signFrac
             clusterentropy[i] = centers[i].entropyVal
         cluster_center_max =  (np.abs(clusterCenters)).max()

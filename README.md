@@ -349,11 +349,87 @@ TODO
 
 ### 7-11
 - keys用bitmap来代替，bitmap可以进行按位或操作，以此进行keys merge
+- 用merge的bitmap来反映key-group的集合，根据bitmap中对应的类别来查询相应的bucket array，计算平均值。这种方法和先进行查询取bucket中的值，再进行平均的朴素方法相比，存在一定的误差，但是这种误差是可以控制的，由于先进行了clustermodel的同步，因此不同的lsstable对应的array的值都是在同一个聚类中心范围之内的，因此，尽管我们将lsstable直接进行了平均，有的值分布在不同的bucket array，我们无法将不同的array进行平均，只能将相同位置进行平均，但是平均之后的值和我们分别在不同的array中精确查找的值相差并不大。
+### 7-12
+- 实现多线程的插入和查询，插入过程中，只需要在一个（grad_num， cluster_num）的np.zeros中按照线程id设置对应cluster的位置处为1，需要修改insert；解压过程先进行bitmap的merge，以及unpack，再多线程根据id执行query，返回key_group 1Dnumpy，再根据lsstable计算lsstable[i][hash(key)%len(array)]的均值
+
+- pyCUDA计算bitmap，但是lsstable需要c++ CUDA，kernel函数访问类，类中有device函数
+- pycuda gpuarray numba
+- zero-copy memory不用转移数据，通过pcie直接访问内存和显存 unified memory（在代码层面）隐藏代码中数据迁移cumemcp， UVA？ 多GPU进行数据迁移？
+
+### 7-13
+- 用gpuarray代替lssentry array
+- UVA升级为UM， 默认UVA，可以通过pcie访问其他gpu的数据，通过cudaawarempi直接传输其他node的gpu数据，UM多GPU继续看PPT
+
+### 7-14
+- lsstable_val按照lsstable——size进行索引
+- keys_group转化为bitmap
+- 解码query操作gpu化
+- pycuda对于c++类支持不好，需要在Python中将C++类的变量逐一传输到GPU，需要计算内存地址大小
+
+### 7-15
+- bitmap不应该用按位或进行运算，应该进行逐元素相加，计算梯度在每个类中的数目，平均的梯度应该是这些类对应bucket处的均值的加权平均，权重即为每个类的比例
+- lsstable可以进行直接numpy平均
+
+### 7-17
+- query方法运行过程：bitmap直接merge，将相应位置处的值相加，得到每个类别上的梯度数量，GPU每个线程查询每个梯度在每个类别的lsstable的hash值，与每个类别上梯度数量相乘，再对这个梯度上得到的所有值进行归并求和，得到所有梯度
+- rank1训练得到的聚类模型以及lsstable的大小实际上是两个shape相同的numpy数组，而且后面也是直接使用这两个值，因此应该将train_cluster改为返回center 的array以及lsstable_size
+- lss方法的原理
 
 
+### 7-18
+- 由于lsstable中保存的是类的平均值，因此正负值必须分开，当我们只取一类进行稀疏化时，势必只能是正或者负，因此没有没包含的一部分是很大一部分，因此不适合进行稀疏化
+
+### 10-15
+- pycuda int32 需要传入np.int32()
+
+### 10-16
+- 储存全部梯度，合并聚类画图，说明梯度聚类的必要性
+- 画出量化后梯度不同类别的比例，以及decode之后的分布图，说明梯度还原后的分布相比其他方法更准确
+- merged_bitmap =0? uint8 size?
+- hash不均匀 更换为BKDR hash
+- code size？pickle.dumps()会将uint8变大，bitmap仍需压缩
+- cuda memory overload(gpuarray.gpudata.free())
+- code error 想比聚类中心的值有点大
+- 大多数梯度归类到最大的类？
+
+10-18
+- cifar100梯度收集，并画图解释分层优势，需要重新安装conda
+- 记录代码运行时间
+- 在import torch之前设置CUDA
 
 
+10-20
+- pickle改为cPickle
+- pickle protocol保留原始数据大小
+- gn20: cifar10-lss-res34 测试lss方法是否可以收敛
+- gn20: cifar10-sgd-res34 收集梯度
+- gn26: 10-20-lss-cifar10-testarraymethod1.log     
+- gn26: 10-20-lss-cifar10-testcpickle.log
+- gn26: 10-20-lss-cifar10-testtablesize200000.log 
+- gn26: cifar100-lss-res34 测试lss方法是否收敛
 
+10-22
+```sh
+mpirun -H gn20,gn26,gn26,gn26 \
+~/anaconda2/envs/pytorch0.3.0_1/bin/python distributed_nn.py \
+--lr=0.01 \
+--lr-shrinkage=0.95 \
+--momentum=0.0 \
+--network=ResNet34 \
+--dataset=Cifar10 \
+--batch-size=64 \
+--test-batch-size=50 \
+--comm-type=Bcast \
+--num-aggregate=2 \
+--eval-freq=200 \
+--epochs=50 \
+--max-steps=40000 \
+--svd-rank=3 \
+--quantization-level=4 \
+--bucket-size=512 \
+--code=lss \
+```
 
 
 

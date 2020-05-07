@@ -26,6 +26,8 @@ from datetime import datetime
 import copy
 from sys import getsizeof
 import pickle
+from scipy.stats import scoreatpercentile
+
 
 STEP_START_ = 1
 # use compression tool to make it run faster
@@ -344,6 +346,24 @@ class DistributedWorker(NN_Trainer):
             new_state_dict.update(tmp_dict)
         self.network.load_state_dict(new_state_dict)
 
+    def test_local_error(self, origin_value, code):
+        grad_number = code['flatten_size']
+        lss_table = code['coded_data']
+        keysInGroup = codings.HuffmanEncoder.HuffmanEncoder.decode(code['coded_index'], code['codebook'])
+        decode_value = torch.Tensor(self._coder.decode(lss_table, keysInGroup, grad_number))
+        code_error = (origin_value.flat[:] - decode_value.numpy().flat[:])/(np.abs(origin_value.flat[:]))
+        big_score = scoreatpercentile(np.abs(origin_value.flat[:]), 95)
+        big_mask = np.abs(origin_value.flat[:])>big_score
+        small_mask = np.abs(origin_value.flat[:])<=big_score
+        big_score_error = np.abs((origin_value.flat[:])[big_mask] - (decode_value.numpy().flat[:])[big_mask])/np.abs((origin_value.flat[:])[big_mask])
+        # small_score_error to do
+        small_score_error = np.abs((origin_value.flat[:])[small_mask] - (decode_value.numpy().flat[:])[small_mask])/np.abs((origin_value.flat[:])[small_mask])
+        positive_error = code_error[code_error > 0]
+        negative_error = code_error[code_error <= 0]
+        print('rank {}'.format(self.rank),positive_error,positive_error.size, negative_error, negative_error.size)
+        print('rank {}'.format(self.rank),'mean error{}, positive error {}, negative error {}, big num error {}, small num error {}'.format(code_error.mean(), positive_error.mean(), np.abs(negative_error.mean()), big_score_error.mean(), small_score_error.mean()))
+        print('rank {}'.format(self.rank), positive_error.max(), np.abs(negative_error).max(), small_score_error.max(), big_score_error.max())
+
     def _encode_total_grad(self):
         grad_list = []
         _msg_counter = 0
@@ -357,7 +377,7 @@ class DistributedWorker(NN_Trainer):
         # param_name = self.network.named_parameters()
         for p_index, p in self.network.named_parameters():
             if self._enable_gpu:
-                grad = p.grad.data.view(-1).cpu().numpy().astype(np.float32)
+                grad = p.grad.data.view(-1).cpu().numpy().astype(np.float32)  
             else:
                 grad = p.grad.data.view(-1).numpy().astype(np.float32)
             # save grad
@@ -369,13 +389,20 @@ class DistributedWorker(NN_Trainer):
         print('conca total grad {}'.format(total_grad.size))
         if self.cur_step%10 == 1:
             if self.rank==1:
-                cluster_model = self._coder.train_cluster(total_grad)
-                self.comm.send(cluster_model, dest=0, tag=20)
+                self.cluster_model = self._coder.train_cluster(total_grad)
+                pickle_cluster_model = pickle.dumps(self.cluster_model)
+                self.comm.send(bytearray(pickle_cluster_model), dest=0, tag=20)
+                print('compressor size{}'.format(getsizeof(bytearray(pickle_cluster_model))))
             else:
-                cluster_model = None
-            self.comm.bcast(cluster_model, root=0)
-            print('rank {} get bcast {}'.format(self.rank, cluster_model))
-        coded = self._coder.encode(total_grad, cluster_model)
+                # cluster_model = None
+                req = self.comm.irecv(source=0, tag=30)
+                compressor = req.wait()
+                self.cluster_model = pickle.loads(compressor)
+                print('rank {} get bcast {}'.format(self.rank, self.cluster_model))
+            # self.comm.bcast(self.cluster_model, root=0)
+            
+        coded = self._coder.encode(total_grad, self.cluster_model)
+        self.test_local_error(total_grad, coded)
         pickled = pickle.dumps(coded)
         # print('worker {} encode {}'.format(self.rank, p_index))
         byte_code = bytearray(pickled)
@@ -412,6 +439,7 @@ class DistributedWorker(NN_Trainer):
 
     def _send_total_grad(self, msgs):
         req_isend = self.comm.isend(msgs, dest=0, tag=88)
+        print('rank {} send grad'.format(self.rank))
         req_isend.wait()
 
     def _send_grads(self, msgs):

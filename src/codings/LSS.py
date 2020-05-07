@@ -23,6 +23,7 @@ class LSS(Coding):
         self.compressor = None
     
     def train_cluster(self, v):
+        # this value is used to train cluster
         if isinstance(v, (torch.Tensor)):
             self.values = v.cpu().numpy().flat[:]
         elif isinstance(v, np.ndarray):
@@ -81,10 +82,11 @@ class LSS(Coding):
 
 
     def encode(self, v, compressor, **kwargs):
+        # this value is the grad in each worker, but not the grad in rank1 used to train the cluster
         if isinstance(v, (torch.Tensor)):
-            self.values = v.cpu().numpy().flat[:]
+            self.values = v.cpu().numpy().astype(np.float32).flat[:]
         elif isinstance(v, np.ndarray):
-            self.values = v.flat[:]
+            self.values = v.astype(np.float32).flat[:]
         else:
             raise ValueError("Object passed to encode not ndarray or torch.Tensor")
         
@@ -131,28 +133,28 @@ class LSS(Coding):
             # to do
             self.compressor = compressor
 
-            traces = None
+            # traces = None
             # //compressor.compressDense(values);
             # long t1 = System.currentTimeMillis();
-            self.compressor.parallelcompressDense(self.values)
+            code = self.compressor.compressDense(self.values)
             # coded_data = self.compressor.lssCKInstance.LSSTable
-            coded_data = self.compressor.LSSTable_val
-            coded_index = self.compressor.encoded_index
-            codebook = self.compressor.codebook
-            # hash_list = self.compressor.lssCKInstance.LongHashFunction4PosHash
-            code = {'coded_data':coded_data, 'coded_index':coded_index, 'codebook':codebook, 'encode_flag':encode_flag, 'flatten_size':n}
+            # coded_data = self.compressor.LSSTable_val
+            # coded_index = self.compressor.encoded_index
+            # codebook = self.compressor.codebook
+            # # hash_list = self.compressor.lssCKInstance.LongHashFunction4PosHash
+            # code = {'coded_data':coded_data, 'coded_index':coded_index, 'codebook':codebook, 'encode_flag':encode_flag, 'flatten_size':n}
             # print('size of coded data {}, size of encoded index {}, sizeof codebook {}'.format(sys.getsizeof(code['coded_data']), sys.getsizeof(code['coded_index']), sys.getsizeof(code['codebook'])))
             # code = {'coded_data':coded_data, 'coded_index':coded_index,
             #         'shape': shape}
-        else:
-            encode_flag = False
-            code = {'coded_data':v, 'encode_flag':encode_flag}
-        if kwargs.pop('timings', False):
-            data = {}
-            return code, data
+        # else:
+        #     encode_flag = False
+        #     code = {'coded_data':v, 'encode_flag':encode_flag}
+        # if kwargs.pop('timings', False):
+        #     data = {}
+        #     return code, data
         return code
 
-    def decode(self, lsstable, keysingroup, flatten_size, cuda=True, **kwargs):
+    def decode(self, lsstable, keysingroup, flatten_size, lsstable_size, cuda=True, **kwargs):
         """
         Decode the coding.
         ## NumPy
@@ -167,7 +169,7 @@ class LSS(Coding):
         ## PT GPU
         """
 
-        dValues = LSSSimplifiedCompressor.decompressDense(lsstable, keysingroup, flatten_size)
+        dValues = LSSSimplifiedCompressor.decompressDense(lsstable, keysingroup, flatten_size, lsstable_size)
         # time = System.currentTimeMillis() - t1;
         # LOG.info("DecodeAll:" + n + ", TotalDelay: " + time);
         # //LOG.info("LSS:\nFirst 10 values before: " + Arrays.toString(Arrays.copyOf(values, 10)));
