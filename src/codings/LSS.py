@@ -14,7 +14,7 @@ import seaborn as sb
 import matplotlib.pyplot as plt
 
 class LSS(Coding):
-    def __init__(self, scheme='lss', bin_num=2000, cluster_num=5, *args, **kwargs):
+    def __init__(self, scheme='lss', bin_num=2000, cluster_num=2, *args, **kwargs):
         self.scheme = scheme
         self._random = random.random()
         self.values = None
