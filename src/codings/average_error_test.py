@@ -23,16 +23,17 @@ def test_svd(gradients, quantization_level):
 
     pickle_code= pickle.dumps(code)
     code_size = sys.getsizeof(pickle_code)
-    print('code size {}'.format(code_size))
+    # print('code size {}'.format(code_size))
     unpickle_code = pickle.loads(pickle_code)
     current_time = time.time()
     decode_value = svd_total.decode(unpickle_code, cuda=False)
     decode_time = time.time() - current_time
-    print('encode time {}, decode_time {}, decode shape {}'.format(encode_time, decode_time, decode_value.shape))
+    # print('encode time {}, decode_time {}, decode shape {}'.format(encode_time, decode_time, decode_value.shape))
+    return decode_value
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
-    distance = wasserstein_distance(gradients, decode_value)
+    # distance = wasserstein_distance(gradients, decode_value)
 
-    print('distance of svd: {}'.format(distance))
+    # print('distance of svd: {}'.format(distance))
     # code_error = (gradients.flat[:] - decode_value.numpy().flat[:])/(np.abs(gradients.flat[:]))
     # big_score = scoreatpercentile(np.abs(gradients.flat[:]), 95)
     # big_mask = np.abs(gradients.flat[:])>big_score
@@ -61,10 +62,12 @@ def test_terngrad(gradients, quantization_level):
     current_time = time.time()
     decode_value = qsgd_total.decode(unpickle_code, cuda=False)
     decode_time = time.time() - current_time
-    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
-    distance = wasserstein_distance(gradients, decode_value)
+    return decode_value
 
-    print('distance of terngrad: {}'.format(distance))
+    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    # distance = wasserstein_distance(gradients, decode_value)
+
+    # print('distance of terngrad: {}'.format(distance))
 
 def test_qsgd(gradients, quantization_level):
     qsgdkw = {'quantization_level':quantization_level}
@@ -76,15 +79,17 @@ def test_qsgd(gradients, quantization_level):
 
     pickle_code= pickle.dumps(code)
     code_size = sys.getsizeof(pickle_code)
-    print('code size {}'.format(code_size))
+    # print('code size {}'.format(code_size))
     unpickle_code = pickle.loads(pickle_code)
     current_time = time.time()
     decode_value = qsgd_total.decode(unpickle_code, cuda=False)
     decode_time = time.time() - current_time
-    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
-    distance = wasserstein_distance(gradients, decode_value)
+    return decode_value
 
-    print('distance of qsgd: {}'.format(distance))
+    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    # distance = wasserstein_distance(gradients, decode_value)
+
+    # print('distance of qsgd: {}'.format(distance))
     # print('encode time {}, decode_time {}, decode shape {}'.format(encode_time, decode_time, decode_value.numpy().shape))
     # code_error = (gradients.flat[:] - decode_value.numpy().flat[:])/(np.abs(gradients.flat[:]))
     # big_score = scoreatpercentile(np.abs(gradients.flat[:]), 95)
@@ -121,10 +126,11 @@ def test_lss(gradients, quantization_level):
 
     decode_value = lss.decode(lss_table, keysInGroup, grad_number)
     decode_time = time.time() - current_time
-    print('encode time {}, decode_time {}, decode shape {}'.format(encode_time, decode_time, decode_value.shape))
+    # print('encode time {}, decode_time {}, decode shape {}'.format(encode_time, decode_time, decode_value.shape))
+    return decode_value
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
-    distance = wasserstein_distance(gradients, decode_value)
-    print('distance of lss: {}'.format(distance))
+    # distance = wasserstein_distance(gradients, decode_value)
+    # print('distance of lss: {}'.format(distance))
     # code_error = (gradients.flat[:] - decode_value.numpy().flat[:])/(np.abs(gradients.flat[:]))
     # big_score = scoreatpercentile(np.abs(gradients.flat[:]), 95)
     # big_mask = np.abs(gradients.flat[:])>big_score
@@ -145,15 +151,15 @@ if __name__ == '__main__':
     print(origin_con_value.shape, sys.getsizeof(origin_con_value))
     gradients_conv = origin_con_value[:,1:21]
     # print(gradients)
-    gradients_conv = gradients_conv.flat[:]*10000
+    gradients_conv = gradients_conv*10000
 
     origin_fc_value = np.loadtxt(filepath_fc, delimiter=',', skiprows=1)
     print(origin_fc_value.shape, sys.getsizeof(origin_fc_value))
     gradients_fc = origin_fc_value[:,1:21]
     # print(gradients)
-    gradients_fc = gradients_fc.flat[:]*10000
+    gradients_fc = gradients_fc*10000
 
-    gradients = np.concatenate((gradients_fc, gradients_conv))
+    gradients = np.concatenate((gradients_fc,gradients_fc,gradients_fc, gradients_conv,gradients_conv,gradients_conv,gradients_conv,gradients_conv,gradients_conv,gradients_conv,gradients_conv,gradients_conv,gradients_conv), axis=0)
     # gradients = gradients_conv   
     # jvmPath = jpype.getDefaultJVMPath()           #the path of jvm.dll 
     # classpath = "/Users/keke/Documents/Project/Sketch_DNN/LSS/LSS/sketch/target/classes"                 #the path of PasswordCipher.class 
@@ -170,11 +176,24 @@ if __name__ == '__main__':
     #     print ("Unknown Error")
     # finally: 
     #     jpype.shutdownJVM()        #shut down JVM
-    print('lss test')
-    test_lss(gradients, 2)
-    print('qsgd test')
-    test_qsgd(gradients, 2)
-    print('terngrad test')
-    test_terngrad(gradients, 2)
-    print('svd test')
-    test_svd(gradients, 4)
+    # print('lss test')
+    # test_lss(gradients, 4)
+    # print('qsgd test')
+    # test_qsgd(gradients, 4)
+    # print('terngrad test')
+    # test_terngrad(gradients, 4)
+    # print('svd test')
+    # test_svd(gradients, 4)
+    quantType = {'lss':test_lss, 'qsgd':test_qsgd, 'terngrad':test_terngrad, 'svd':test_svd}
+    for index, (name, type) in enumerate(quantType.items()):
+        decode_node_value = np.zeros(gradients.shape[0])
+        print(decode_node_value.shape)
+        for node_index in range(0, gradients.shape[1]):
+            node_gradients = gradients[:, node_index]
+            decode_node_value = type(node_gradients.flat[:], quantization_level=4)+decode_node_value
+        # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+        decode_value = decode_node_value/gradients.shape[1]
+        print(decode_value.shape)
+        print((np.mean(gradients, axis=1)).shape)
+        distance = wasserstein_distance(np.mean(gradients, axis=1), decode_value)
+        print('distance of {}: {}'.format(name, distance))

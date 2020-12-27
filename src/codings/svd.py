@@ -166,17 +166,17 @@ class SVD(Coding):
         if not encode:
             grad = encode_output['grad']
             grad = torch.Tensor(grad)
-            if cuda:
-                grad = grad.cuda(async=True)
-            return grad
+            # if cuda:
+            #     grad = grad.cuda(async=True)
+            # return grad
 
         u, s, vT = (encode_output[key] for key in ['u', 's', 'vT'])
         #grad = u @ np.diag(s) @ vT
         grad = np.dot(np.dot(u, np.diag(s)), vT)
         grad = torch.Tensor(grad)
         grad = grad.view(encode_output['orig_size'])
-        if cuda:
-            grad = grad.cuda(async=True)
+        # if cuda:
+        #     grad = grad.cuda(async=True)
         return grad
 
         if isinstance(u, np.ndarray):
@@ -185,10 +185,10 @@ class SVD(Coding):
             s = torch.Tensor(s)
         if isinstance(vT, np.ndarray):
             vT = torch.Tensor(vT)
-        if cuda:
-            u = u.contiguous().cuda(async=True)
-            s = s.contiguous().cuda(async=True)
-            vT = vT.contiguous().cuda(async=True)
+        # if cuda:
+        #     u = u.contiguous().cuda(async=True)
+        #     s = s.contiguous().cuda(async=True)
+        #     vT = vT.contiguous().cuda(async=True)
             #  u = u.cuda(async=True)
             #  s = s.cuda(async=True)
             #  vT = vT.cuda(async=True)

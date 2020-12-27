@@ -350,8 +350,44 @@ TODO
 ### 7-11
 - keys用bitmap来代替，bitmap可以进行按位或操作，以此进行keys merge
 
+## 2020-12-26
+- 调用接口：
+```python
+    # initialize LSS class
+    lss = LSS(cluster_num=quantization_level)   
+    current_time = time.time()
+    # firstly train a clustering model in sampled data if the data number is greater than 100,000 or training directely. Set encode flag to false if number less than 1,000. Retrun a compressor (object of LSSSimplifiedCompressor)
+    compressor = lss.train_cluster(gradients)
+    # encode the gradient with the compression, gradient must be a vector, code is a diction: code = {'coded_data':coded_data, 'coded_index':coded_index, 'codebook':codebook, 'encode_flag':encode_flag, 'flatten_size':n}
+    code = lss.encode(gradients, compressor)
+    encode_time = time.time()-current_time
 
+    pickle_code= pickle.dumps(code)
+    code_size = sys.getsizeof(bytearray(pickle_code))
+    print('code size {}, {},{}'.format(code_size, sys.getsizeof(pickle.dumps(code['coded_data'])), sys.getsizeof(pickle.dumps(code['coded_index']))))
+    unpickle_code = pickle.loads(pickle_code)
+    current_time = time.time()
+    # get the number of gradients
+    grad_number = unpickle_code['flatten_size']
+    # get the sketch
+    lss_table = unpickle_code['coded_data']
+    # get the mapping relation between gradient index and cluster index, decode with huffman decoder, which is a static variable in class LSSSimplifiedCompressor
+    # actually, we can use the codebook to decode directely: codebook.decode(encoded_index)
+    keysInGroup = codings.LSSSimplifiedCompressor.denseEncoders.decode(unpickle_code['coded_index'], unpickle_code['codebook'])
+    ...
 
+def _decode_total_grad(self, coded_msgs):
+  # decode with lss object (self._coder)
+  grad = self._coder.decode(self.aggregate_total_gradient(coded_msgs))
+```
+- how to test lss/qsgd/terngrad: level=1bit: set level=2, set `pctthreshold=99.9` in `clusterNoThreshold` ; other level: set `ClusterArraychoicemethod=3` in `LSS.py` to manually set bucket number, then set the bucket number in `LSSSimlplified.py:255` according to the `pctThreshold=xx`in and number of gradients, usually 10% of the total number of gradients for the biggest cluster.
+
+| quant_type| 1bit  |     | 2 bit ||  3bit | |
+|------|------|-------|-------|------|-------|-------|
+| gradients|conv*m |conv*m+fc*n|conv*m|conv*m+fc*n|conv*m|conv*m+fc*n|
+|cas|
+|qsgd|
+|terngrad|
 
 
 

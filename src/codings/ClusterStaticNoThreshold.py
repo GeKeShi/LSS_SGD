@@ -15,7 +15,7 @@ class ClusterStaticNoThreshold(object):
 		# self.threshold4Maximum=0
 		# self.threshold4Maximum0=0
 		self.centroids = [0]*_numCluster
-		self.pctThreshold = 95
+		self.pctThreshold = 85
 
 	@staticmethod
 	def WhetherAdd2ClusterTrace(r, N, sampled):
@@ -25,7 +25,7 @@ class ClusterStaticNoThreshold(object):
 			return False
 
 	def entropy_bin(self, points):
-		fq = stats.relfreq(points, numbins=100, defaultreallimits=(np.amin(points), np.amax(points)))
+		fq = stats.relfreq(points, numbins=5, defaultreallimits=(np.amin(points), np.amax(points)))
 		# print('entropy frequency', fq.frequency)
 		return stats.entropy(fq.frequency, base=2)
 
@@ -36,8 +36,8 @@ class ClusterStaticNoThreshold(object):
 
 	def selectThreshold(self, points):
 		pctVal = np.percentile(points, self.pctThreshold)
-		entropyVal = self.entropy(np.extract(points>pctVal, points))
-		return [pctVal, entropyVal]
+		entropyVal = self.entropy_bin(np.extract(np.abs(points)>abs(pctVal), points))
+		return [pctVal, 3*entropyVal]
 	# /**
 	# 	 * init cluster, return centroids
 	# 	 * @param points
@@ -51,6 +51,7 @@ class ClusterStaticNoThreshold(object):
 		
 		# long t1 = System.currentTimeMillis();
 		# //threshold to do
+		# find the big group and make it a cluster, let the pctThreshold % data as its center, then run kmeans on the rest points to get cluster number -1 cluster
 		if np.amax(points)>0:
 			pct= self.selectThreshold(points)
 			self.threshold4Maximum =pct[0]
@@ -96,7 +97,7 @@ class ClusterStaticNoThreshold(object):
 			# //add
 			center.append(Pair(groupPercent,float(self.threshold4Maximum), pctEntropy))
 		else:
-			self.pctThreshold = 5
+			self.pctThreshold = 15
 			pct = self.selectThreshold(points)
 			self.threshold4Maximum = pct[0]
 			pctEntropy = pct[1]
@@ -175,8 +176,8 @@ class ClusterStaticNoThreshold(object):
 			# //center
 				# //cluster centers to do
 			center.append(Pair(float(clusterResults[i].size)/totalPoints,
-					centerV[i],self.entropy(clusterResults[i])))
-			print('Pair:',float(clusterResults[i].size)/totalPoints, centerV[i], self.entropy(clusterResults[i]))
+					centerV[i],self.entropy_bin(clusterResults[i])))
+			print('Pair:',float(clusterResults[i].size)/totalPoints, centerV[i], self.entropy_bin(clusterResults[i]))
 				# //LOG.info("center: "+ centerV.getPoint()[0]);
 				# //all nodes
 	# //		    	for(oneDimData oneD: clusterResults.get(i).getPoints()){

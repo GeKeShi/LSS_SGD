@@ -163,19 +163,19 @@ class LSSSimplified(object):
         for i in range(clusterNum):
             # //scaled by cluster size
             # //int arraySize = Math.round(bucketCount/clusterCount);
-            arraySize = int(max(LSSSimplified.MinArraySize, round(self.getArraySize(clusterCenters, clusterdensity, clusterentropy, i, self.clusterArrayChoiceMethod, totalSum) * self.bucketCount)))
-            if finalLeft - arraySize < 0:
+            arraySize = int(max(LSSSimplified.MinArraySize, round(self.getArraySize(clusterCenters, clusterdensity, clusterentropy, i, self.clusterArrayChoiceMethod, totalSum))))
+            # if finalLeft - arraySize < 0:
                 # //log.warn("exceed the expected bucket!");
-                arraySize = finalLeft
+                # arraySize = finalLeft
             arraySize = max(1, arraySize)
             # //LOGGER.info("cluster: "+i+", "+arraySize);
             # //new array
             b = [LSSEntry() for i in range(arraySize)]
-            # print('array size', arraySize)
+            print('array size', arraySize)
             self.LSSTable.append(b)
             # print(self.LSSTable)
             # //tune the bucket size
-            finalLeft -= arraySize
+            # finalLeft -= arraySize
 
         return clusterCenters
 
@@ -249,11 +249,11 @@ class LSSSimplified(object):
             return clusterentropy[i] * abs((clusterCenters[i])/cluster_center_max) * clusterdensity[i] / (totalSum)
         elif choiceArray == 2:
             # //entropy*density
-            return clusterentropy[i] *  abs((clusterCenters[i])/cluster_center_max) / totalSum
+            return self.bucketCount*(clusterentropy[i] *  abs((5*clusterCenters[i])/cluster_center_max) / totalSum)
 
         elif choiceArray == 3:
-            # //entropy
-            return clusterentropy[i] / totalSum
+            bucket_number = [4000,1000,100,1,1,100,1000,4000]# //entropy
+            return bucket_number[i]
         else:
             # //density
             return clusterdensity[i] / totalSum
