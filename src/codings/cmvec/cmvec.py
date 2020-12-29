@@ -132,18 +132,18 @@ class CMVec(object):
         tokens = tokens.reshape((1, nTokens))
 
         # computing sign hashes (4 wise independence)
-        h1 = hashes[:,2:3]
-        h2 = hashes[:,3:4]
-        h3 = hashes[:,4:5]
-        h4 = hashes[:,5:6]
-        self.signs = (((h1 * tokens + h2) * tokens + h3) * tokens + h4)
-        self.signs = ((self.signs % LARGEPRIME % 2) * 2 - 1).float()
+        # h1 = hashes[:,2:3]
+        # h2 = hashes[:,3:4]
+        # h3 = hashes[:,4:5]
+        # h4 = hashes[:,5:6]
+        # self.signs = (((h1 * tokens + h2) * tokens + h3) * tokens + h4)
+        # self.signs = ((self.signs % LARGEPRIME % 2) * 2 - 1).float()
 
         # only move to device now, since this computation takes too
         # much memory if done on the GPU, and it can't be done
         # in-place because pytorch (1.0.1) has no in-place modulo
         # function that works on large numbers
-        self.signs = self.signs.to(self.device)
+        # self.signs = self.signs.to(self.device)
 
         # computing bucket hashes (2-wise independence)
         h1 = hashes[:,0:1]
@@ -156,7 +156,7 @@ class CMVec(object):
         # tensors
         self.buckets = self.buckets.to(self.device)
 
-        cache[cacheKey] = {"signs": self.signs,
+        cache[cacheKey] = {#"signs": self.signs,
                            "buckets": self.buckets}
         if numBlocks > 1:
             cache[cacheKey].update({"blockSigns": self.blockSigns,
@@ -190,7 +190,7 @@ class CMVec(object):
         newCSVec.table = copy.deepcopy(self.table)
         global cache
         cachedVals = cache[(self.d, self.c, self.r, self.numBlocks, self.device)]
-        newCSVec.signs = cachedVals["signs"]
+        # newCSVec.signs = cachedVals["signs"]
         newCSVec.buckets = cachedVals["buckets"]
         if self.numBlocks > 1:
             newCSVec.blockSigns = cachedVals["blockSigns"]
@@ -264,7 +264,7 @@ class CMVec(object):
         # the vector is sketched to each row independently
         for r in range(self.r):
             buckets = self.buckets[r,:].to(self.device)
-            signs = self.signs[r,:].to(self.device)
+            # signs = self.signs[r,:].to(self.device)
             # the main computation here is the bincount below, but
             # there's lots of index accounitng leading up to it due
             # to numBlocks being potentially > 1
@@ -273,16 +273,17 @@ class CMVec(object):
                 end = (blockId + 1) * buckets.size()[0]
                 end = min(end, self.d)
                 offsetBuckets = buckets[:end-start].clone()
-                offsetSigns = signs[:end-start].clone()
+                # offsetSigns = signs[:end-start].clone()
                 if self.numBlocks > 1:
                     offsetBuckets += self.blockOffsets[blockId]
                     offsetBuckets %= self.c
-                    offsetSigns *= self.blockSigns[blockId]
+                    # offsetSigns *= self.blockSigns[blockId]
                 # bincount computes the sum of all values in the vector
                 # that correspond to each bucket
                 self.table[r,:] += torch.bincount(
                                     input=offsetBuckets,
-                                    weights=offsetSigns * vec[start:end],
+                                    #weights=offsetSigns * vec[start:end],
+                                    weights= vec[start:end],
                                     minlength=self.c
                                    )
 
@@ -338,16 +339,18 @@ class CMVec(object):
         d = coords.size()[0]
         vals = torch.zeros(self.r, self.d, device=self.device)
         for r in range(self.r):
-            vals[r] = (self.table[r, self.buckets[r, coords]]
-                       * self.signs[r, coords])
+            # vals[r] = (self.table[r, self.buckets[r, coords]]
+            #            * self.signs[r, coords])
+            vals[r] = (self.table[r, self.buckets[r, coords]])
         return vals.median(dim=0)[0]
 
     def _findAllValues(self):
         if self.numBlocks == 1:
             vals = torch.zeros(self.r, self.d, device=self.device)
             for r in range(self.r):
-                vals[r] = (self.table[r, self.buckets[r,:]]
-                           * self.signs[r,:])
+                # vals[r] = (self.table[r, self.buckets[r,:]]
+                #            * self.signs[r,:])
+                vals[r] = (self.table[r, self.buckets[r,:]])
             return vals.median(dim=0)[0]
         else:
             medians = torch.zeros(self.d, device=self.device)
@@ -358,12 +361,12 @@ class CMVec(object):
                 vals = torch.zeros(self.r, end-start, device=self.device)
                 for r in range(self.r):
                     buckets = self.buckets[r, :end-start]
-                    signs = self.signs[r, :end-start]
+                    # signs = self.signs[r, :end-start]
                     offsetBuckets = buckets + self.blockOffsets[blockId]
                     offsetBuckets %= self.c
-                    offsetSigns = signs * self.blockSigns[blockId]
-                    vals[r] = (self.table[r, offsetBuckets]
-                                * offsetSigns)
+                    # offsetSigns = signs * self.blockSigns[blockId]
+                    # vals[r] = (self.table[r, offsetBuckets]
+                                # * offsetSigns)
                 medians[start:end] = vals.median(dim=0)[0]
             return medians
 
