@@ -1,6 +1,9 @@
+import torch
 from LSS import LSS
 from svd import SVD
 from qsgd import QSGD
+from csvec import CSVec
+from cmvec import CMVec
 import time
 import math
 
@@ -138,9 +141,47 @@ def test_lss(gradients, quantization_level):
     # print('mean error{}, positive error {}, negative error {}, big num error {}, small num error {}'.format(code_error.mean(), positive_error.mean(), np.abs(negative_error.mean()), big_score_error.mean(), small_score_error.mean()))
     # print(positive_error.max(), np.abs(negative_error).max(), small_score_error.max(), big_score_error.max())
 
+def test_csvec(gradients):
+    vec = torch.tensor(gradients, device='cuda')
+    cs_sketch = CSVec(vec.size()[0], c=20000, r=5)
+    cs_sketch.accumulateVec(vec)
+    sketch_table = cs_sketch.table
+ 
+    
+    
+    code_size = sketch_table.element_size()*sketch_table.numel()
+    print(f'code size {code_size}')
+
+
+    decode_value = cs_sketch._findAllValues().cpu().numpy()
+    print(f'decode shape {decode_value.shape}')
+    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    distance = wasserstein_distance(gradients, decode_value)
+    print(f'distance of cs_sketch: {distance}')
+
+
+def test_cmvec(gradients):
+    vec = torch.tensor(gradients, device='cuda')
+    cm_sketch = CMVec(vec.size()[0], c=20000, r=5)
+    cm_sketch.accumulateVec(vec)
+    sketch_table = cm_sketch.table
+ 
+    
+    
+    code_size = sketch_table.element_size()*sketch_table.numel()
+    print(f'code size {code_size}')
+
+
+    decode_value = cm_sketch._findAllValues().cpu().numpy()
+    print(f'decode shape {decode_value.shape}')
+    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    distance = wasserstein_distance(gradients, decode_value)
+    print(f'distance of cm_sketch: {distance}')
+
+
 if __name__ == '__main__':
-    filepath_conv = '/Users/keke/Documents/Project/Sketch_DNN/gradients_resnet34/conv_layer_csv/gd_conv_data_total.csv'
-    filepath_fc = '/Users/keke/Documents/Project/Sketch_DNN/gradients_resnet34/fc_layer_csv/gd_fc_data_total.csv'
+    filepath_conv = '../../../gradients_resnet34/conv_layer_csv/gd_conv_data_total.csv'
+    filepath_fc = '../../../gradients_resnet34/fc_layer_csv/gd_fc_data_total.csv'
     origin_con_value = np.loadtxt(filepath_conv, delimiter=',', skiprows=1)
     print(origin_con_value.shape, sys.getsizeof(origin_con_value))
     gradients_conv = origin_con_value[:,1:21]
@@ -177,4 +218,8 @@ if __name__ == '__main__':
     print('terngrad test')
     test_terngrad(gradients, 2)
     print('svd test')
-    test_svd(gradients, 4)
+    test_svd(gradients, 3)
+    print('cs_sketch test')
+    test_csvec(gradients)
+    print('cm_sketch test')
+    test_cmvec(gradients)

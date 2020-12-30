@@ -381,16 +381,21 @@ def _decode_total_grad(self, coded_msgs):
   grad = self._coder.decode(self.aggregate_total_gradient(coded_msgs))
 ```
 - how to test lss/qsgd/terngrad: level=1bit: set level=2, set `pctthreshold=99.9` in `clusterNoThreshold` ; other level: set `ClusterArraychoicemethod=3` in `LSS.py` to manually set bucket number, then set the bucket number in `LSSSimlplified.py:255` according to the `pctThreshold=xx`in and number of gradients, usually 10% of the total number of gradients for the biggest cluster.
+- conv*21+fc*21=1058560; conv*21=34560
 
 | quant_type| 1bit  |     | 2 bit ||  3bit | |
 |------|------|-------|-------|------|-------|-------|
 | gradients|conv*m |conv*m+fc*n|conv*m|conv*m+fc*n|conv*m|conv*m+fc*n|
-|cas|
-|qsgd|
-|terngrad|
+|cas| 32.14046246745134|11.147359768733848 |11.282536098382078  |6.799291919266389| 7.152148586139356| 4.6468552070535125|
+|qsgd| 1201.346920481589 | 542.9087644726227|342.60097550533305  |160.52569309063284| 100.97366302405044| 54.22812858660813|
+|terngrad| 121.51607863103308| 128.6203687568705| 19.781274792370304  |29.129952586313525| 4.813074015979637|8.448870630410452 |
+|cs_sketch| 321.0532244372209| 148.09765508413216| 198.38154942443302 |90.5277719795757| 97.19696268444254| 82.72278706892754|
+|cm_sketch| 871.80470766876 | 147.42656203177995|351.84080446812715 |93.14706263411549| 125.12181149932938| 83.03590199229424|
 
-
-
-
+| quant_type| 1bit  |     | 2 bit ||  3bit | |
+|------|------|-------|-------|------|-------|-------|
+| gradients|conv*m |conv*m+fc*n|conv*m|conv*m+fc*n|conv*m|conv*m+fc*n|
+|cas| 100| 3000|11.282536098382078  |6.799291919266389|3116+1579+408+357+1505+3036| 9000+ 4000+ 10+ 10+ 4000+ 9000|
+|cs_sketch| 216*5| 6000*5| 432*5 |13232*5| 648*5 | 19848*5 |
 
 

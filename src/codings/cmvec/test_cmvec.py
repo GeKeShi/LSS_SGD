@@ -1,20 +1,20 @@
 import unittest
-import csvec
+import cmvec
 from cmvec import CMVec
 import torch
 
 class Base:
-    # use Base class to hide CSVecTestCase from the unittest runner
+    # use Base class to hide CMVecTestCase from the unittest runner
     # we only want the subclasses to actually be run
 
-    class CSVecTestCase(unittest.TestCase):
+    class CMVecTestCase(unittest.TestCase):
         def testRandomness(self):
             # make sure two sketches get the same hashes and signs
             d = 100
             c = 20
             r = 5
-            a = CSVec(d, c, r, **self.csvecArgs)
-            b = CSVec(d, c, r, **self.csvecArgs)
+            a = CMVec(d, c, r, **self.cmvecArgs)
+            b = CMVec(d, c, r, **self.cmvecArgs)
             self.assertTrue(torch.allclose(a.signs, b.signs))
             self.assertTrue(torch.allclose(a.buckets, b.buckets))
             self.assertTrue(torch.allclose(a.signs, b.signs))
@@ -30,7 +30,7 @@ class Base:
             d = 100
             c = 20
             r = 5
-            a = CSVec(d, c, r, **self.csvecArgs)
+            a = CMVec(d, c, r, **self.cmvecArgs)
             zeros = torch.zeros(r, c).to(self.device)
             self.assertTrue(torch.allclose(a.table, zeros))
 
@@ -41,7 +41,7 @@ class Base:
             d = 100
             c = 1
             r = 5
-            a = CSVec(d=d, c=c, r=r, **self.csvecArgs)
+            a = CMVec(d=d, c=c, r=r, **self.cmvecArgs)
             vec = torch.zeros(d).to(self.device)
             vec[0] = 1
             a.accumulateVec(vec)
@@ -59,7 +59,7 @@ class Base:
             d = 100
             c = 20
             r = 5
-            a = CSVec(d, c, r, **self.csvecArgs)
+            a = CMVec(d, c, r, **self.cmvecArgs)
             vec = torch.rand(d).to(self.device)
             a.accumulateVec(vec)
 
@@ -76,7 +76,7 @@ class Base:
             d = 5
             c = 10000
             r = 20
-            a = CSVec(d, c, r, **self.csvecArgs)
+            a = CMVec(d, c, r, **self.cmvecArgs)
             vec = torch.rand(d).to(self.device)
 
             a.accumulateVec(vec)
@@ -95,11 +95,11 @@ class Base:
             c = 10000
             r = 20
 
-            summed = CSVec(d, c, r, **self.csvecArgs)
+            summed = CMVec(d, c, r, **self.cmvecArgs)
             for i in range(d):
                 vec = torch.zeros(d).to(self.device)
                 vec[i] = 1
-                sketch = CSVec(d, c, r, **self.csvecArgs)
+                sketch = CMVec(d, c, r, **self.cmvecArgs)
                 sketch.accumulateVec(vec)
                 summed += sketch
 
@@ -113,7 +113,7 @@ class Base:
             r = 20
 
             vec = torch.randn(d).to(self.device)
-            a = CSVec(d, c, r, **self.csvecArgs)
+            a = CMVec(d, c, r, **self.cmvecArgs)
             a.accumulateVec(vec)
 
             tol = 0.0001
@@ -124,43 +124,43 @@ class Base:
             c = 10000
             r = 20
 
-            csvecs = [CSVec(d, c, r, **self.csvecArgs) for _ in range(3)]
-            for i, csvec in enumerate(csvecs):
+            cmvecs = [CMVec(d, c, r, **self.cmvecArgs) for _ in range(3)]
+            for i, cmvec in enumerate(cmvecs):
                 vec = torch.arange(d).float().to(self.device) + i
-                csvec.accumulateVec(vec)
-            median = CSVec.median(csvecs)
+                cmvec.accumulateVec(vec)
+            median = CMVec.median(cmvecs)
             recovered = median.unSketch(k=d)
             trueMedian = torch.arange(d).float().to(self.device) + 1
             self.assertTrue(torch.allclose(recovered, trueMedian))
 
-class TestCaseCPU1(Base.CSVecTestCase):
+class TestCaseCPU1(Base.CMVecTestCase):
     def setUp(self):
-        # hack to reset csvec's global cache between tests
-        csvec.cache = {}
+        # hack to reset cmvec's global cache between tests
+        cmvec.cache = {}
 
         self.device = "cpu"
         self.numBlocks = 1
 
-        self.csvecArgs = {"numBlocks": self.numBlocks,
+        self.cmvecArgs = {"numBlocks": self.numBlocks,
                           "device": self.device}
 
-class TestCaseCPU2(Base.CSVecTestCase):
+class TestCaseCPU2(Base.CMVecTestCase):
     def setUp(self):
-        csvec.cache = {}
+        cmvec.cache = {}
 
         self.device = "cpu"
         self.numBlocks = 2
 
-        self.csvecArgs = {"numBlocks": self.numBlocks,
+        self.cmvecArgs = {"numBlocks": self.numBlocks,
                           "device": self.device}
 
 @unittest.skipIf(not torch.cuda.is_available(), "CUDA not available")
-class TestCaseCUDA2(Base.CSVecTestCase):
+class TestCaseCUDA2(Base.CMVecTestCase):
     def setUp(self):
-        csvec.cache = {}
+        cmvec.cache = {}
 
         self.device = "cuda"
         self.numBlocks = 2
 
-        self.csvecArgs = {"numBlocks": self.numBlocks,
+        self.cmvecArgs = {"numBlocks": self.numBlocks,
                           "device": self.device}

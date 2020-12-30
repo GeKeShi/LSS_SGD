@@ -252,7 +252,7 @@ class LSSSimplified(object):
             return self.bucketCount*(clusterentropy[i] *  abs((5*clusterCenters[i])/cluster_center_max) / totalSum)
 
         elif choiceArray == 3:
-            bucket_number = [4000,1000,100,1,1,100,1000,4000]# //entropy
+            bucket_number = [3000,1,1,3000]# //entropy
             return bucket_number[i]
         else:
             # //density

@@ -184,6 +184,8 @@ if __name__ == '__main__':
     # test_terngrad(gradients, 4)
     # print('svd test')
     # test_svd(gradients, 4)
+    
+    # compute wasserstein distance between average gradient and decoded gradient  
     quantType = {'lss':test_lss, 'qsgd':test_qsgd, 'terngrad':test_terngrad, 'svd':test_svd}
     for index, (name, type) in enumerate(quantType.items()):
         decode_node_value = np.zeros(gradients.shape[0])

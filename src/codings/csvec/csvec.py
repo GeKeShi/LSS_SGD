@@ -1,3 +1,4 @@
+import torch
 import math
 import numpy as np
 import copy
@@ -436,3 +437,23 @@ class CSVec(object):
         returnCSVec = copy.deepcopy(csvecs[0])
         returnCSVec.table = med
         return returnCSVec
+
+
+if __name__ == "__main__":
+    gradients = np.random.randn(100)
+    print(gradients)
+    vec = torch.tensor(gradients, device='cuda')
+    cs_sketch = CSVec(vec.size()[0], c=10, r=5)
+    cs_sketch.accumulateVec(vec)
+    sketch_table = cs_sketch.table
+    print(sketch_table)
+    
+    
+    code_size = sketch_table.element_size()*sketch_table.numel()
+    print(f'code size {code_size}')
+
+
+    decode_value = cs_sketch._findAllValues().cpu().numpy()
+    print(f'decode shape {decode_value.shape}')
+    print(decode_value)
+    # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
