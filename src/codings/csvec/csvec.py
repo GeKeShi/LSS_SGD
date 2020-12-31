@@ -3,6 +3,7 @@ import math
 import numpy as np
 import copy
 import torch
+import time
 
 LARGEPRIME = 2**61-1
 
@@ -439,21 +440,53 @@ class CSVec(object):
         return returnCSVec
 
 
+
+def test_merge(numWorker):
+    """
+    test the acceleration of merge
+    """
+    gradientes_list= [np.random.rand(1000000) for i in range(numWorker)]
+    sketch_list = []
+    for gradients in gradientes_list:
+        vec = torch.tensor(gradients, device='cuda')
+        cs_sketch = CSVec(vec.size()[0], c=1000, r=5, numBlocks=16)
+        cs_sketch.accumulateVec(vec)
+        sketch_list.append(cs_sketch)
+    merge_start_time = time.time()
+    merged_sketch = np.sum(sketch_list)
+    decode_merge_vals = merged_sketch._findAllValues()
+    merge_end_time = time.time()
+    merge_time_diff = merge_end_time - merge_start_time
+
+    decode_start_time = time.time()
+    decode_val_list = []
+    for sketch in sketch_list:
+        decode = sketch._findAllValues()
+        decode_val_list.append(decode)
+    decode_val_list = torch.sum(torch.vstack(decode_val_list), dim=0)
+    decode_end_time = time.time()
+    decode_time_diff = decode_end_time - decode_start_time
+
+    print(f"merge time {merge_time_diff} seconds, decode time {decode_time_diff} seconds")
+
 if __name__ == "__main__":
-    gradients = np.random.randn(100)
-    print(gradients)
-    vec = torch.tensor(gradients, device='cuda')
-    cs_sketch = CSVec(vec.size()[0], c=10, r=5)
-    cs_sketch.accumulateVec(vec)
-    sketch_table = cs_sketch.table
-    print(sketch_table)
+    # gradients = np.random.randn(100)
+    # print(gradients)
+    # vec = torch.tensor(gradients, device='cuda')
+    # cs_sketch = CSVec(vec.size()[0], c=10, r=5)
+    # cs_sketch.accumulateVec(vec)
+    # sketch_table = cs_sketch.table
+    # print(sketch_table)
     
     
-    code_size = sketch_table.element_size()*sketch_table.numel()
-    print(f'code size {code_size}')
+    # code_size = sketch_table.element_size()*sketch_table.numel()
+    # print(f'code size {code_size}')
 
 
-    decode_value = cs_sketch._findAllValues().cpu().numpy()
-    print(f'decode shape {decode_value.shape}')
-    print(decode_value)
+    # decode_value = cs_sketch._findAllValues().cpu().numpy()
+    # print(f'decode shape {decode_value.shape}')
+    # print(decode_value)
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    for i in [1024]:
+        print("test merge for {} workers".format(i))
+        test_merge(i)

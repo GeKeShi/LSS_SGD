@@ -398,4 +398,21 @@ def _decode_total_grad(self, coded_msgs):
 |cas| 100| 3000|11.282536098382078  |6.799291919266389|3116+1579+408+357+1505+3036| 9000+ 4000+ 10+ 10+ 4000+ 9000|
 |cs_sketch| 216*5| 6000*5| 432*5 |13232*5| 648*5 | 19848*5 |
 
+- test merge efficiency with 4-512 nodes, 1000,000 gradients
 
+test merge for 4 workers
+merge time 0.0006134510040283203 seconds, decode time 0.0021097660064697266 seconds
+test merge for 8 workers
+merge time 0.0007631778717041016 seconds, decode time 0.004918813705444336 seconds
+test merge for 16 workers
+merge time 0.0011944770812988281 seconds, decode time 0.004057884216308594 seconds
+test merge for 32 workers
+merge time 0.0020890235900878906 seconds, decode time 0.007892847061157227 seconds
+test merge for 64 workers
+merge time 0.0037355422973632812 seconds, decode time 0.1314220428466797 seconds
+test merge for 128 workers
+merge time 0.007250308990478516 seconds, decode time 0.5949215888977051 seconds
+test merge for 256 workers
+merge time 0.014047622680664062 seconds, decode time 1.515331506729126 seconds
+test merge for 512 workers
+merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
