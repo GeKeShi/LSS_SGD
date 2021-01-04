@@ -420,3 +420,6 @@ merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
 1.4
 - 3320 gn4 sgd c10 res34
 - nohup sh run_pytorch.sh >> 104-ren34-c10-qsgd-lr01.log 2>&1 & level1 gn6 3537
+- nohup sh run_pytorch.sh >> 104-res34-c10-sgd-lr01.log 2>&1 & [2] 2916 gn6
+- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-level1-lr01.log 2>&1 & gn4
+- nohup sh run_pytorch.sh >> 104-res34-c10-qsgd-level1-lr01.log 2>&1 & gn6 3118
