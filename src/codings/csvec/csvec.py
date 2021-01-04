@@ -445,11 +445,11 @@ def test_merge(numWorker):
     """
     test the acceleration of merge
     """
-    gradientes_list= [np.random.rand(1000000) for i in range(numWorker)]
+    gradientes_list= [np.random.rand(20000000) for i in range(numWorker)]
     sketch_list = []
     for gradients in gradientes_list:
         vec = torch.tensor(gradients, device='cuda')
-        cs_sketch = CSVec(vec.size()[0], c=1000, r=5, numBlocks=16)
+        cs_sketch = CSVec(vec.size()[0], c=1000, r=5, numBlocks=20)
         cs_sketch.accumulateVec(vec)
         sketch_list.append(cs_sketch)
     merge_start_time = time.time()
@@ -467,9 +467,10 @@ def test_merge(numWorker):
     decode_end_time = time.time()
     decode_time_diff = decode_end_time - decode_start_time
 
-    print(f"merge time {merge_time_diff} seconds, decode time {decode_time_diff} seconds")
-
+    print(f"merge time {merge_time_diff} seconds, decode time {decode_time_diff} seconds, speedup {decode_time_diff/merge_time_diff}")
+    return decode_time_diff/merge_time_diff
 if __name__ == "__main__":
+    import os
     # gradients = np.random.randn(100)
     # print(gradients)
     # vec = torch.tensor(gradients, device='cuda')
@@ -487,6 +488,14 @@ if __name__ == "__main__":
     # print(f'decode shape {decode_value.shape}')
     # print(decode_value)
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
-    for i in [1024]:
-        print("test merge for {} workers".format(i))
-        test_merge(i)
+    data = []
+    for step in range(10):    
+        speedup_list = []
+        for i in [4,8,16,32,64,128,256]:
+            print("test merge for {} workers".format(i))
+            speedup =test_merge(i)
+            speedup_list.append(speedup)
+        data.append(speedup_list)
+    print(data)
+    data= np.array(data)
+    np.save(os.path.join(os.path.dirname(__file__), 'speedup.npy'), data)
