@@ -445,11 +445,11 @@ def test_merge(numWorker):
     """
     test the acceleration of merge
     """
-    gradientes_list= [np.random.rand(20000000) for i in range(numWorker)]
+    gradientes_list= [np.random.rand(1000000) for i in range(numWorker)]
     sketch_list = []
     for gradients in gradientes_list:
         vec = torch.tensor(gradients, device='cuda')
-        cs_sketch = CSVec(vec.size()[0], c=1000, r=5, numBlocks=20)
+        cs_sketch = CSVec(vec.size()[0], c=100000, r=10, numBlocks=20)
         cs_sketch.accumulateVec(vec)
         sketch_list.append(cs_sketch)
     merge_start_time = time.time()
@@ -491,11 +491,11 @@ if __name__ == "__main__":
     data = []
     for step in range(10):    
         speedup_list = []
-        for i in [4,8,16,32,64,128,256]:
+        for i in [4,8,16,32,64,128,256,512]:
             print("test merge for {} workers".format(i))
             speedup =test_merge(i)
             speedup_list.append(speedup)
         data.append(speedup_list)
     print(data)
-    data= np.array(data)
-    np.save(os.path.join(os.path.dirname(__file__), 'speedup.npy'), data)
+    # data= np.array(data)
+    # np.save(os.path.join(os.path.dirname(__file__), 'speedup.npy'), data)
