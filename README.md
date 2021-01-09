@@ -419,7 +419,22 @@ merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
 
 1.4
 - 3320 gn4 sgd c10 res34
-- nohup sh run_pytorch.sh >> 104-ren34-c10-qsgd-lr01.log 2>&1 & level1 gn6 3537
-- nohup sh run_pytorch.sh >> 104-res34-c10-sgd-lr01.log 2>&1 & [2] 2916 gn6
-- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-level1-lr01.log 2>&1 & gn4
+- nohup sh run_pytorch.sh >> 104-ren34-c10-qsgd-lr01.log 2>&1 & level1 gn6 3537 end
+- nohup sh run_pytorch.sh >> 104-res34-c10-sgd-lr01.log 2>&1 & [2] 2916 gn6 end
+- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-level1-lr01.log 2>&1 & gn4 3769
 - nohup sh run_pytorch.sh >> 104-res34-c10-qsgd-level1-lr01.log 2>&1 & gn6 3118
+
+1.5
+- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-lr005.log 2>&1 & gn4 20130
+- nohup sh run_pytorch.sh >> 105-res34-c10-qsgd-lr005.log 2>&1 & gn4 20306
+- nohup sh run_pytorch.sh >> 106-Res34-c10-lss-level4-lr065-256.log 2>&1 & from gn6 6399
+
+       JOBID PARTITION                                     NAME     USER ST         TIME  NODES NODELIST(REASON)
+     2798039    TH_GPU                              sleeping.sh    wql17  R         1:09      1 gn1
+     2798040    TH_GPU                              sleeping.sh    wql17  R         1:09      1 gn2
+     2798041    TH_GPU                              sleeping.sh    wql17  R         1:09      1 gn13
+     2798042    TH_GPU                              sleeping.sh    wql17  R         1:09      1 gn14
+
+- nohup sh run_pytorch.sh >> 105-Res50-img-sgd-lr01-128.log 2>&1 & gn13,14 from gn1:18100
+- 
+- 
