@@ -9,10 +9,10 @@ from coding import Coding
 import sys
 import pickle
 import torch.nn.functional as F
-
+from HuffmanEncoder import HuffmanEncoder
 
 class QSGD(Coding):
-    def __init__(self, scheme='qsgd', bucket_size=512, *args, **kwargs):
+    def __init__(self, scheme='qsgd', bucket_size=0, *args, **kwargs):
         self.scheme = scheme
         self._quantization_level = kwargs['quantization_level']
         self._bucket_size=bucket_size
@@ -59,32 +59,48 @@ class QSGD(Coding):
         w = np.pad(w, (0, len_each_section * num_section - w.shape[0]), mode='constant') # pad w to length of total elements
 
         sign_array = np.sign(w)
-        sign_array += 1 # -1, 0, 1 to 0, 1, 2
-        sign_array = sign_array.astype('uint64')
+        # sign_array += 1 # -1, 0, 1 to 0, 1, 2
+        # sign_array = sign_array.astype('uint64')
         normalization_array = np.abs(w) / norm * s
 
         truncated_array = normalization_array.astype(int) # l <= \frac{s \|w\|_i}{\|w\|_2} <= l+1
         prob_array = normalization_array - truncated_array # \frac{s \|w\|_i}{\|w\|_2} - l i.e. p function p(a, s) = as - l
         dice_array = np.random.rand(len(prob_array))
         xi_array = truncated_array + (dice_array > prob_array) # l+1 or l
-        xi_array = xi_array.astype('uint64')
+        # xi_array = xi_array.astype('uint64')
 
-        xi_array = xi_array.reshape((num_section, len_each_section))
-        sign_array = sign_array.reshape((num_section, len_each_section))
+        # xi_array = xi_array.reshape((num_section, len_each_section))
+        # sign_array = sign_array.reshape((num_section, len_each_section))
 
-        neo_array = np.zeros(len_each_section)
-        neo_array = neo_array.astype('uint64')
+        # neo_array = np.zeros(len_each_section)
+        # neo_array = neo_array.astype('uint64')
 
-        for i in range(num_int_each_64_bits):
-            xi = xi_array[i]
-            sign = sign_array[i]
-            neo_array <<= (2 + self._quantization_level)
-            neo_array = neo_array | (sign << self._quantization_level | xi)
+        # for i in range(num_int_each_64_bits):
+        #     xi = xi_array[i]
+        #     sign = sign_array[i]
+        #     neo_array <<= (2 + self._quantization_level)
+        #     neo_array = neo_array | (sign << self._quantization_level | xi)
 
-        code = {'neo': neo_array, 'norm': norm, 'quantization_level': self._quantization_level,
-                'len_each_section': len_each_section, 'num_int_each_64_bits': num_int_each_64_bits,
-                'shape': shape}
+        # code = {'neo': neo_array, 'norm': norm, 'quantization_level': self._quantization_level,
+        #         'len_each_section': len_each_section, 'num_int_each_64_bits': num_int_each_64_bits,
+        #         'shape': shape}
+        neo_array = sign_array* xi_array+4
+        # print(neo_array)
+        huff_encoder = HuffmanEncoder()
+        code_book, code_array = huff_encoder.encode(neo_array)
+        # sign_array = sign_array.view((num_section, len_each_section))
 
+        # neo_array = torch.zeros(len_each_section).to(dtype=torch.int64).to(torch.device("cuda"))
+
+        # for i in range(num_int_each_64_bits):
+        #     xi = xi_array[i]
+        #     sign = sign_array[i]
+        #     neo_array *= 2**(2 + self._quantization_level)
+        #     sign *= 2**self._quantization_level
+        #     sign += xi
+        #     neo_array += sign.to(dtype=torch.int64)           
+
+        code = {'neo': code_array}
         if kwargs.pop('timings', False):
             data = {}
             return code, data
@@ -178,10 +194,10 @@ class QSGD(Coding):
 
         sign_array = torch.sign(w)
 
-        sign_array += 1 # -1, 0, 1 to 0, 1, 2
+        # sign_array += 1 # -1, 0, 1 to 0, 1, 2
         #sign_array = sign_array.astype('uint64')
         sign_array = sign_array.to(dtype=torch.int64)
-
+        print(sign_array)
         normalization_array = torch.abs(w) / norm * s
 
         #truncated_array = normalization_array.astype(int) 
@@ -193,23 +209,24 @@ class QSGD(Coding):
         
         xi_array = truncated_array + (dice_array > prob_array).to(dtype=torch.int) # l+1 or l
         xi_array = xi_array.to(dtype=torch.int64)
-        xi_array = xi_array.view((num_section, len_each_section))
+        # xi_array = xi_array.view((num_section, len_each_section))
+        xi_array = sign_array* xi_array
+        print(xi_array)
+        huff_encoder = HuffmanEncoder()
+        code_book, code_array = huff_encoder.encode(xi_array)
+        # sign_array = sign_array.view((num_section, len_each_section))
 
-        sign_array = sign_array.view((num_section, len_each_section))
+        # neo_array = torch.zeros(len_each_section).to(dtype=torch.int64).to(torch.device("cuda"))
 
-        neo_array = torch.zeros(len_each_section).to(dtype=torch.int64).to(torch.device("cuda"))
+        # for i in range(num_int_each_64_bits):
+        #     xi = xi_array[i]
+        #     sign = sign_array[i]
+        #     neo_array *= 2**(2 + self._quantization_level)
+        #     sign *= 2**self._quantization_level
+        #     sign += xi
+        #     neo_array += sign.to(dtype=torch.int64)           
 
-        for i in range(num_int_each_64_bits):
-            xi = xi_array[i]
-            sign = sign_array[i]
-            neo_array *= 2**(2 + self._quantization_level)
-            sign *= 2**self._quantization_level
-            sign += xi
-            neo_array += sign.to(dtype=torch.int64)           
-
-        code = {'neo': neo_array, 'norm': norm, 'quantization_level': self._quantization_level,
-                'len_each_section': len_each_section, 'num_int_each_64_bits': num_int_each_64_bits,
-                'shape': shape}
+        code = {'neo': code_array}
         return code
 
 
