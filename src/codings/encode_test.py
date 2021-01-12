@@ -60,9 +60,9 @@ def test_terngrad(gradients, quantization_level):
     print('code size {}'.format(code_size))
     unpickle_code = pickle.loads(pickle_code)
     current_time = time.time()
-    decode_value = qsgd_total.decode(unpickle_code, cuda=False)
+    # decode_value = qsgd_total.decode(unpickle_code, cuda=False)
     decode_time = time.time() - current_time
-    return decode_value
+    return 1
 
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
     # distance = wasserstein_distance(gradients, decode_value)
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     # test_svd(gradients, 4)
     
     # compute wasserstein distance between average gradient and decoded gradient  
-    quantType = {'qsgd':test_qsgd}
+    quantType = {'lss':test_lss, 'terngad':test_terngrad}
     for index, (name, type) in enumerate(quantType.items()):
         node_gradients = origin_con_value[:]
         decode_node_value = type(node_gradients.flat[:], quantization_level=4)

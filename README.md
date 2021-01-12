@@ -421,13 +421,13 @@ merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
 - 3320 gn4 sgd c10 res34
 - nohup sh run_pytorch.sh >> 104-ren34-c10-qsgd-lr01.log 2>&1 & level1 gn6 3537 end
 - nohup sh run_pytorch.sh >> 104-res34-c10-sgd-lr01.log 2>&1 & [2] 2916 gn6 end
-- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-level1-lr01.log 2>&1 & gn4 3769
-- nohup sh run_pytorch.sh >> 104-res34-c10-qsgd-level1-lr01.log 2>&1 & gn6 3118
+- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-level1-lr01.log 2>&1 & gn4 3769  end
+- nohup sh run_pytorch.sh >> 104-res34-c10-qsgd-level1-lr01.log 2>&1 & gn6 3118 end
 
 1.5
-- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-lr005.log 2>&1 & gn4 20130
-- nohup sh run_pytorch.sh >> 105-res34-c10-qsgd-lr005.log 2>&1 & gn4 20306
-- nohup sh run_pytorch.sh >> 106-Res34-c10-lss-level4-lr065-256.log 2>&1 & from gn6 6399
+- nohup sh run_pytorch.sh >> 104-res34-c10-terngrad-lr005.log 2>&1 & gn4 20130 end
+- nohup sh run_pytorch.sh >> 105-res34-c10-qsgd-lr005.log 2>&1 & gn4 20306 end
+- nohup sh run_pytorch.sh >> 106-Res34-c10-lss-level4-lr065-256.log 2>&1 & from gn6 6399 end
 
        JOBID PARTITION                                     NAME     USER ST         TIME  NODES NODELIST(REASON)
      2798039    TH_GPU                              sleeping.sh    wql17  R         1:09      1 gn1
@@ -438,7 +438,7 @@ merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
 - nohup sh run_pytorch.sh >> 105-Res50-img-sgd-lr01-128.log 2>&1 & gn13,14 from gn1:18100
 - 
 
-1.9 attention56 (55703780,) 222815216 lss huffman vs. qsgd
+1.9 attention56 (55703780,) 222815216 lss huffman vs. terngrad
 4bit:clusterdensity [0.1500077  0.0884799  0.20087017 0.56064223 0.57630681 0.19383636
 3bit:clusterdensity [0.15001444 0.16593206 0.68405351 0.68485795 0.16513685 0.1500052 ]
 2bit:clusterdensity [0.15001638 0.84998362 0.84999688 0.15000312]
@@ -448,3 +448,11 @@ merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
 |lss| 13344694|16301318 | 18680972|
 |qsgd| 36017287|45592710 | 53427165|
 
+1.10
+- nohup sh run_pytorch.sh >> 110-Res34-c100-lss-level4-lr065-256.log 2>&1 & gn6 25720 [1] 25707 end level 3
+- nohup sh run_pytorch.sh >> 110-Res34-c100-qsgd-level1-lr005-128.log 2>&1 & gn6 25941 [2] 25929
+
+1.12
+- nohup sh run_pytorch.sh >> 112-res34-c100-sgd-lr065-256.log 2>&1 & gn4[1] 28796 28806
+- nohup sh run_pytorch.sh >> 112-res34-c100-lss-lr065-256.log 2>&1 & gn4 29035[2] 29023 level2
+- nohup sh run_pytorch.sh >> 112-res34-c100-lss-level1-lr04-256.log 2>&1 &gn6[3] 29171

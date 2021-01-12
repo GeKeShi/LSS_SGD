@@ -51,6 +51,7 @@ class QSGD(Coding):
             w = np.clip(w, -limit, limit)
 
         s = (1 << self._quantization_level) - 1
+        print(f's {s}')
         shape = v.shape
 
         num_int_each_64_bits = int(64 / (2 + self._quantization_level)) # number of element stored / 64-bits
@@ -62,11 +63,12 @@ class QSGD(Coding):
         # sign_array += 1 # -1, 0, 1 to 0, 1, 2
         # sign_array = sign_array.astype('uint64')
         normalization_array = np.abs(w) / norm * s
-
+        print(f'normalization_array {normalization_array[:100]}')
         truncated_array = normalization_array.astype(int) # l <= \frac{s \|w\|_i}{\|w\|_2} <= l+1
         prob_array = normalization_array - truncated_array # \frac{s \|w\|_i}{\|w\|_2} - l i.e. p function p(a, s) = as - l
         dice_array = np.random.rand(len(prob_array))
         xi_array = truncated_array + (dice_array > prob_array) # l+1 or l
+        print(f'xi_array {xi_array[:100]}')
         # xi_array = xi_array.astype('uint64')
 
         # xi_array = xi_array.reshape((num_section, len_each_section))
@@ -84,7 +86,7 @@ class QSGD(Coding):
         # code = {'neo': neo_array, 'norm': norm, 'quantization_level': self._quantization_level,
         #         'len_each_section': len_each_section, 'num_int_each_64_bits': num_int_each_64_bits,
         #         'shape': shape}
-        neo_array = sign_array* xi_array+4
+        neo_array = sign_array* xi_array
         # print(neo_array)
         huff_encoder = HuffmanEncoder()
         code_book, code_array = huff_encoder.encode(neo_array)
