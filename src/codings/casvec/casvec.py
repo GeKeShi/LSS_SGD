@@ -91,6 +91,7 @@ class CASVec(object):
         if cacheKey in cache:
             # self.signs = cache[cacheKey]["signs"]
             self.buckets = cache[cacheKey]["buckets"]
+            self.cluster_assignment = cache[cacheKey]["cluster_assignment"] 
             if self.numBlocks > 1:
                 self.blockSigns = cache[cacheKey]["blockSigns"]
                 self.blockOffsets = cache[cacheKey]["blockOffsets"]
@@ -157,11 +158,15 @@ class CASVec(object):
         # tensors
         self.buckets = self.buckets.to(self.device)
 
-        self.cluster_assignment = 
+        self.cluster_assignment = np.random.randint(self.r, size=(self.d, 1), dtype=np.uint8)
+        self.cluster_assignment = np.unpackbits(self.cluster_assignment, axis=1, bitorder='little', count=self.r)
+        self.cluster_assignment = torch.from_numpy(self.cluster_assignment).to(self.device)
 
 
         cache[cacheKey] = {#"signs": self.signs,
-                           "buckets": self.buckets}
+                           "buckets": self.buckets,
+                           "cluster_assignment": self.cluster_assignment
+                           }
         if numBlocks > 1:
             cache[cacheKey].update({"blockSigns": self.blockSigns,
                                     "blockOffsets": self.blockOffsets})
@@ -196,6 +201,7 @@ class CASVec(object):
         cachedVals = cache[(self.d, self.c, self.r, self.numBlocks, self.device)]
         # newCSVec.signs = cachedVals["signs"]
         newCSVec.buckets = cachedVals["buckets"]
+        newCSVec.cluster_assignment = cachedVals["cluster_assignment"]
         if self.numBlocks > 1:
             newCSVec.blockSigns = cachedVals["blockSigns"]
             newCSVec.blockOffsets = cachedVals["blockOffsets"]
@@ -222,7 +228,9 @@ class CASVec(object):
             other: a CSVec with identical values of d, c, and r
         """
         # a bit roundabout in order to avoid initializing a new CSVec
+        # overide __deepcopy__
         returnCSVec = copy.deepcopy(self)
+        # overide with __iadd__
         returnCSVec += other
         return returnCSVec
 
@@ -240,6 +248,7 @@ class CASVec(object):
             assert(self.device == other.device)
             assert(self.numBlocks == other.numBlocks)
             self.table += other.table
+            self.cluster_assignment += other.cluster_assignment
         else:
             raise ValueError("Can't add this to a CSVec: {}".format(other))
         return self
@@ -355,7 +364,8 @@ class CASVec(object):
                 # vals[r] = (self.table[r, self.buckets[r,:]]
                 #            * self.signs[r,:])
                 vals[r] = (self.table[r, self.buckets[r,:]])
-            return vals.median(dim=0)[0]
+                vals[r] = vals[r] * self.cluster_assignment[:, r]
+            return vals.sum(dim=0)
         else:
             medians = torch.zeros(self.d, device=self.device)
             for blockId in range(self.numBlocks):
@@ -449,35 +459,30 @@ def test_merge(numWorker):
     """
     test the acceleration of merge
     """
-    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
-    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
-
-    gradients = np.load(filepath)
-    sketch_size = [90000,80000,40000]
-    sketch_list = []
-    for worker_index in range(numWorker):
-        for quantization_level in [1,2,3]:   
-            vec = torch.tensor(gradients, device='cuda')
-            cs_sketch = CASVec(vec.size()[0], c=sketch_size, r=2**quantization_level, numBlocks=1)
-            cs_sketch.accumulateVec(vec)
-            sketch_list.append(cs_sketch)
-    merge_start_time = time.time()
-    merged_sketch = sum(sketch_list)
-    decode_merge_vals = merged_sketch._findAllValues()
-    merge_end_time = time.time()
-    merge_time_diff = merge_end_time - merge_start_time
-
-    decode_start_time = time.time()
-    decode_val_list = []
-    for sketch in sketch_list:
+    
+    # merge_start_time = time.time()
+    # merged_sketch = np.sum(sketch_list[:numWorker])
+    # # merge_sum_time = time.time()
+    # # print(f"merge_sum_time {merge_sum_time - merge_start_time}")
+    # # merge_sum_time = time.time()
+    # decode_merge_vals = merged_sketch._findAllValues()
+    # merge_end_time = time.time()
+    # # print(f'merge_decode_time {merge_end_time - merge_sum_time}')
+    # merge_time_diff = merge_end_time - merge_start_time
+    
+    decode_val = torch.zeros(gradients.shape, device='cuda')
+    decode_start_time = time.time()    
+    for sketch in sketch_list[:numWorker]:
         decode = sketch._findAllValues()
-        decode_val_list.append(decode)
-    decode_val_list = torch.sum(torch.vstack(decode_val_list), dim=0)
+        decode_val+=decode
+    # decode_query_time = time.time()
+    # print(f"decode_query_time {decode_query_time - decode_start_time}")
+    # decode_val_list = torch.sum(torch.vstack(decode_val_list), dim=0)
     decode_end_time = time.time()
+    # print(f'decode_sum_time {decode_end_time - decode_query_time}')
     decode_time_diff = decode_end_time - decode_start_time
 
-    print(f"merge time {merge_time_diff} seconds, decode time {decode_time_diff} seconds, speedup {decode_time_diff/merge_time_diff}")
-    return decode_time_diff/merge_time_diff
+    return decode_time_diff
 if __name__ == "__main__":
     import os
     # gradients = np.random.randn(100)
@@ -497,14 +502,37 @@ if __name__ == "__main__":
     # print(f'decode shape {decode_value.shape}')
     # print(decode_value)
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
+    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
+
+    gradients = ((np.load(filepath)))
+    sketch_size = [40000, 80000,90000, 90000]
+    quantization_level =3
+    sketch_list = []
+    for worker_index in range(512):  
+        vec = torch.tensor(gradients, device='cuda')
+        cs_sketch = CASVec(vec.size()[0], c=sketch_size[quantization_level-1], r=2**quantization_level, numBlocks=1)
+        cs_sketch.accumulateVec(vec)
+        sketch_list.append(cs_sketch)
+
     data = []
-    for step in range(10):    
+    for step in range(1):    
         speedup_list = []
-        for i in [4,8,16,32,64,128,256,512]:
+        for i in [4,8,16,32,64,128,256,512,1024]:
             print("test merge for {} workers".format(i))
             speedup =test_merge(i)
             speedup_list.append(speedup)
         data.append(speedup_list)
+
     print(data)
-    # data= np.array(data)
-    # np.save(os.path.join(os.path.dirname(__file__), 'speedup.npy'), data)
+    data= np.array(data).reshape(-1)
+
+    np.save(os.path.join(os.path.dirname(__file__), 'time_decode.npy'), data)
+
+    if os.path.exists(os.path.join(os.path.dirname(__file__), 'time_decode.npy')) and os.path.exists(os.path.join(os.path.dirname(__file__), 'time_merge.npy')):
+        decode_time = np.load(os.path.join(os.path.dirname(__file__), 'time_decode.npy'))
+        merge_time = np.load(os.path.join(os.path.dirname(__file__), 'time_merge.npy'))
+        speedup = decode_time/merge_time
+        print(speedup)
+    else:
+        pass

@@ -350,6 +350,8 @@ class CSVec(object):
             for r in range(self.r):
                 vals[r] = (self.table[r, self.buckets[r,:]]
                            * self.signs[r,:])
+                print(f'val_r shape {vals[r].size()}')
+            print(f'val_ shape {vals.size()}')
             return vals.median(dim=0)[0]
         else:
             medians = torch.zeros(self.d, device=self.device)
@@ -449,7 +451,7 @@ def test_merge(numWorker):
     sketch_list = []
     for gradients in gradientes_list:
         vec = torch.tensor(gradients, device='cuda')
-        cs_sketch = CSVec(vec.size()[0], c=100000, r=10, numBlocks=20)
+        cs_sketch = CSVec(vec.size()[0], c=100000, r=10, numBlocks=1)
         cs_sketch.accumulateVec(vec)
         sketch_list.append(cs_sketch)
     merge_start_time = time.time()

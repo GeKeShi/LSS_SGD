@@ -69,7 +69,7 @@ class LSS(Coding):
             # encodeChoicer = EncodeChoicer.Huffman
 
             # //cluster choice
-            clusterArrayChoiceMethod = 2
+            clusterArrayChoiceMethod = 3
             # to do
             self.compressor = LSSSimplifiedCompressor(_expectedNumItems, _clusterCount, binNum, clusterArrayChoiceMethod, traces)
             print('compressor size {}'.format(sys.getsizeof(self.compressor)))

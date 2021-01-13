@@ -1,3 +1,4 @@
+import os
 import torch
 from LSS import LSS
 from svd import SVD
@@ -106,8 +107,8 @@ def test_qsgd(gradients, quantization_level):
     # print('mean error{}, positive error {}, negative error {}, big num error {}, small num error {}'.format(code_error.mean(), positive_error.mean(), np.abs(negative_error.mean()), big_score_error.mean(), small_score_error.mean()))
     # print(positive_error.max(), np.abs(negative_error).max(), small_score_error.max(), big_score_error.max())
 
-def test_lss(gradients, quantization_level):
-    lss = LSS(bin_num=2000, cluster_num=quantization_level)
+def test_lss(gradients, quantization_level, bin_factors):
+    lss = LSS(bin_num=bin_factors, cluster_num=quantization_level)
  
     
     current_time = time.time()
@@ -202,8 +203,9 @@ def relative_distance(original_grad, decode_grad):
 
 
 if __name__ == '__main__':
-    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
-    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
+    # to do and change the array size
+    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
+    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
 
     origin_con_value = np.load(filepath)
     print(origin_con_value.shape, sys.getsizeof(origin_con_value))
@@ -225,53 +227,66 @@ if __name__ == '__main__':
     #     print ("Unknown Error")
     # finally: 
     #     jpype.shutdownJVM()        #shut down JVM
+
+    # to do and change the array size
     quantization_level =1
+
     print('lss test')
-    w_distance, error = test_lss(original_gradients, int(2**(quantization_level+1)/2))
-    relative_error = error/(LA.norm(original_gradients)**2)
-    print(relative_error, w_distance)
-    print('qsgd test')
-    error = []
-    for sub_array in np.array_split(original_gradients, 10):
-        print(f'sub_array {sub_array.shape}')
-        distance, sub_error = test_qsgd(sub_array, quantization_level)
-        error.append([distance, sub_error])
-    error = np.array(error)
-    relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-    w_distance = np.mean(error[:,0])
-    print(relative_error, w_distance)
-    print('terngrad test')
-    error = []
-    for sub_array in np.array_split(original_gradients, 10):
-        print(f'sub_array {sub_array.shape}')
-        distance, sub_error = test_terngrad(sub_array, quantization_level)
-        error.append([distance, sub_error])
-    error = np.array(error)
-    relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-    w_distance = np.mean(error[:,0])
-    print(relative_error, w_distance)
-    # print('svd test')
-    # test_svd(gradients, 3)
-    print('cs_sketch test')
+    relative_error_list = []
+    for factors in range(10,0,-1):
+        error = []
+        for sub_array in np.array_split(original_gradients, 10):
+            print(f'sub_array {sub_array.shape}')
+            distance, sub_error = test_lss(sub_array, int(2**(quantization_level+1)/2), factors/(10*10))
+            error.append([distance, sub_error])
+        error = np.array(error)
+        relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+        w_distance = np.mean(error[:,0])
+        print(f'factor {factors/10} {relative_error} {w_distance}')
+        relative_error_list.append(relative_error)
+    # to do chanfe the name
+    np.save(os.path.join(os.path.dirname(__file__), 'lss_error_level'+str(quantization_level)+'_attention.npy'), np.array(relative_error_list))
+    # print('qsgd test')
+    # error = []
+    # for sub_array in np.array_split(original_gradients, 10):
+    #     print(f'sub_array {sub_array.shape}')
+    #     distance, sub_error = test_qsgd(sub_array, quantization_level)
+    #     error.append([distance, sub_error])
+    # error = np.array(error)
+    # relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    # w_distance = np.mean(error[:,0])
+    # print(relative_error, w_distance)
+    # print('terngrad test')
+    # error = []
+    # for sub_array in np.array_split(original_gradients, 10):
+    #     print(f'sub_array {sub_array.shape}')
+    #     distance, sub_error = test_terngrad(sub_array, quantization_level)
+    #     error.append([distance, sub_error])
+    # error = np.array(error)
+    # relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    # w_distance = np.mean(error[:,0])
+    # print(relative_error, w_distance)
+    # # print('svd test')
+    # # test_svd(gradients, 3)
 
-    error = []
-    for sub_array in np.array_split(original_gradients, 2):
-        print(f'sub_array {sub_array.shape}')
-        distance, sub_error = test_csvec(sub_array)
-        error.append([distance, sub_error])
-    error = np.array(error)
-    relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-    w_distance = np.mean(error[:,0])
-    print(relative_error, w_distance)
+    # print('cs_sketch test')
+    # error = []
+    # for sub_array in np.array_split(original_gradients, 10):
+    #     print(f'sub_array {sub_array.shape}')
+    #     distance, sub_error = test_csvec(sub_array)
+    #     error.append([distance, sub_error])
+    # error = np.array(error)
+    # relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    # w_distance = np.mean(error[:,0])
+    # print(relative_error, w_distance)
 
-    print('cm_sketch test')
-
-    error = []
-    for sub_array in np.array_split(original_gradients, 2):
-        print(f'sub_array {sub_array.shape}')
-        distance, sub_error = test_cmvec(sub_array)
-        error.append([distance, sub_error])
-    error = np.array(error)
-    relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-    w_distance = np.mean(error[:,0])
-    print(relative_error, w_distance)
+    # print('cm_sketch test')
+    # error = []
+    # for sub_array in np.array_split(original_gradients, 10):
+    #     print(f'sub_array {sub_array.shape}')
+    #     distance, sub_error = test_cmvec(sub_array)
+    #     error.append([distance, sub_error])
+    # error = np.array(error)
+    # relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    # w_distance = np.mean(error[:,0])
+    # print(relative_error, w_distance)
