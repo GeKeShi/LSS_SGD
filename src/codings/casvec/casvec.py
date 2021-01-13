@@ -1,4 +1,5 @@
 import math
+import time
 import numpy as np
 import copy
 import torch
@@ -12,7 +13,7 @@ cache = {}
 #profile = line_profiler.LineProfiler()
 #atexit.register(profile.print_stats)
 
-class CMVec(object):
+class CASVec(object):
     """ Count Sketch of a vector
 
     Treating a vector as a stream of tokens with associated weights,
@@ -156,6 +157,9 @@ class CMVec(object):
         # tensors
         self.buckets = self.buckets.to(self.device)
 
+        self.cluster_assignment = 
+
+
         cache[cacheKey] = {#"signs": self.signs,
                            "buckets": self.buckets}
         if numBlocks > 1:
@@ -184,7 +188,7 @@ class CMVec(object):
         # don't initialize new CSVec, since that will calculate bc,
         # which is slow, even though we can just copy it over
         # directly without recomputing it
-        newCSVec = CSVec(d=self.d, c=self.c, r=self.r,
+        newCSVec = CASVec(d=self.d, c=self.c, r=self.r,
                          doInitialize=False, device=self.device,
                          numBlocks=self.numBlocks)
         newCSVec.table = copy.deepcopy(self.table)
@@ -228,7 +232,7 @@ class CMVec(object):
         Args:
             other: a CSVec with identical values of d, c, r, device, numBlocks
         """
-        if isinstance(other, CSVec):
+        if isinstance(other, CASVec):
             # merges csh sketch into self
             assert(self.d == other.d)
             assert(self.c == other.c)
@@ -441,21 +445,66 @@ class CMVec(object):
         return returnCSVec
 
 
+def test_merge(numWorker):
+    """
+    test the acceleration of merge
+    """
+    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
+    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
+
+    gradients = np.load(filepath)
+    sketch_size = [90000,80000,40000]
+    sketch_list = []
+    for worker_index in range(numWorker):
+        for quantization_level in [1,2,3]:   
+            vec = torch.tensor(gradients, device='cuda')
+            cs_sketch = CASVec(vec.size()[0], c=sketch_size, r=2**quantization_level, numBlocks=1)
+            cs_sketch.accumulateVec(vec)
+            sketch_list.append(cs_sketch)
+    merge_start_time = time.time()
+    merged_sketch = sum(sketch_list)
+    decode_merge_vals = merged_sketch._findAllValues()
+    merge_end_time = time.time()
+    merge_time_diff = merge_end_time - merge_start_time
+
+    decode_start_time = time.time()
+    decode_val_list = []
+    for sketch in sketch_list:
+        decode = sketch._findAllValues()
+        decode_val_list.append(decode)
+    decode_val_list = torch.sum(torch.vstack(decode_val_list), dim=0)
+    decode_end_time = time.time()
+    decode_time_diff = decode_end_time - decode_start_time
+
+    print(f"merge time {merge_time_diff} seconds, decode time {decode_time_diff} seconds, speedup {decode_time_diff/merge_time_diff}")
+    return decode_time_diff/merge_time_diff
 if __name__ == "__main__":
-    gradients = np.random.randn(100)
-    print(gradients)
-    vec = torch.tensor(gradients, device='cuda')
-    cm_sketch = CMVec(vec.size()[0], c=10, r=5)
-    cm_sketch.accumulateVec(vec)
-    sketch_table = cm_sketch.table
-    print(sketch_table)
+    import os
+    # gradients = np.random.randn(100)
+    # print(gradients)
+    # vec = torch.tensor(gradients, device='cuda')
+    # cs_sketch = CSVec(vec.size()[0], c=10, r=5)
+    # cs_sketch.accumulateVec(vec)
+    # sketch_table = cs_sketch.table
+    # print(sketch_table)
     
     
-    code_size = sketch_table.element_size()*sketch_table.numel()
-    print(f'code size {code_size}')
+    # code_size = sketch_table.element_size()*sketch_table.numel()
+    # print(f'code size {code_size}')
 
 
-    decode_value = cm_sketch._findAllValues().cpu().numpy()
-    print(f'decode shape {decode_value.shape}')
-    print(decode_value)
+    # decode_value = cs_sketch._findAllValues().cpu().numpy()
+    # print(f'decode shape {decode_value.shape}')
+    # print(decode_value)
     # distance = wasserstein_distance(gradients, decode_value, np.abs(gradients), np.abs(gradients))
+    data = []
+    for step in range(10):    
+        speedup_list = []
+        for i in [4,8,16,32,64,128,256,512]:
+            print("test merge for {} workers".format(i))
+            speedup =test_merge(i)
+            speedup_list.append(speedup)
+        data.append(speedup_list)
+    print(data)
+    # data= np.array(data)
+    # np.save(os.path.join(os.path.dirname(__file__), 'speedup.npy'), data)

@@ -35,12 +35,12 @@ class QSGD(Coding):
             shape = v.shape
             neo_kwargs = {'neo_bucket_size': 0}
             buckets = np.array_split(w, int((w.shape[0] + bucket_size - 1) / bucket_size))
-            size = 0
+            # size = 0
             for bucket in buckets:
                 code = self.encode(bucket, **neo_kwargs)
                 code_buckets.append(code)
-                size+=sys.getsizeof(bytearray(pickle.dumps(code['neo'])))
-            print("Size {}".format(size))
+                # size+=sys.getsizeof(bytearray(pickle.dumps(code['neo'])))
+            # print("Size {}".format(size))
             return {'code_buckets': code_buckets, 'shape': shape}
 
         if self.scheme == 'qsgd':
@@ -51,6 +51,8 @@ class QSGD(Coding):
             w = np.clip(w, -limit, limit)
 
         s = (1 << self._quantization_level) - 1
+        # s = (1 << self._quantization_level)
+
         shape = v.shape
 
         num_int_each_64_bits = int(64 / (2 + self._quantization_level)) # number of element stored / 64-bits

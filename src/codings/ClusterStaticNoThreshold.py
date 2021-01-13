@@ -15,7 +15,7 @@ class ClusterStaticNoThreshold(object):
 		# self.threshold4Maximum=0
 		# self.threshold4Maximum0=0
 		self.centroids = [0]*_numCluster
-		self.pctThreshold = 85
+		self.pctThreshold = 99.99
 
 	@staticmethod
 	def WhetherAdd2ClusterTrace(r, N, sampled):
@@ -97,7 +97,7 @@ class ClusterStaticNoThreshold(object):
 			# //add
 			center.append(Pair(groupPercent,float(self.threshold4Maximum), pctEntropy))
 		else:
-			self.pctThreshold = 15
+			self.pctThreshold = 0.01
 			pct = self.selectThreshold(points)
 			self.threshold4Maximum = pct[0]
 			pctEntropy = pct[1]
