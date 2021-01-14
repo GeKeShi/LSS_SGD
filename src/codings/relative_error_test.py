@@ -204,8 +204,8 @@ def relative_distance(original_grad, decode_grad):
 
 if __name__ == '__main__':
     # to do and change the array size
-    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
-    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
+    filepath = '/home/keke/Documents/Project/Sketch_Pytorch/resnet50109.npy'
+    # filepath = '/home/keke/Documents/Project/Sketch_Pytorch/attention56109.npy'
 
     origin_con_value = np.load(filepath)
     print(origin_con_value.shape, sys.getsizeof(origin_con_value))
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     #     jpype.shutdownJVM()        #shut down JVM
 
     # to do and change the array size
-    quantization_level =1
+    quantization_level =2
 
     print('lss test')
     relative_error_list = []
@@ -237,15 +237,15 @@ if __name__ == '__main__':
         error = []
         for sub_array in np.array_split(original_gradients, 10):
             print(f'sub_array {sub_array.shape}')
-            distance, sub_error = test_lss(sub_array, int(2**(quantization_level+1)/2), factors/(10*10))
+            distance, sub_error = test_lss(sub_array, int(2**(quantization_level)/2), factors/(10*10))
             error.append([distance, sub_error])
         error = np.array(error)
         relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
         w_distance = np.mean(error[:,0])
         print(f'factor {factors/10} {relative_error} {w_distance}')
         relative_error_list.append(relative_error)
-    # to do chanfe the name
-    np.save(os.path.join(os.path.dirname(__file__), 'lss_error_level'+str(quantization_level)+'_attention.npy'), np.array(relative_error_list))
+    # to do change the name
+    np.save(os.path.join(os.path.dirname(__file__), 'lss_error_level'+str(quantization_level)+'_res50.npy'), np.array(relative_error_list))
     # print('qsgd test')
     # error = []
     # for sub_array in np.array_split(original_gradients, 10):

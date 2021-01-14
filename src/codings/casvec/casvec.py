@@ -7,7 +7,7 @@ import torch
 LARGEPRIME = 2**61-1
 
 cache = {}
-
+cache_count = 0
 #import line_profiler
 #import atexit
 #profile = line_profiler.LineProfiler()
@@ -22,7 +22,7 @@ class CASVec(object):
 
     public methods: zero, unSketch, l2estimate, __add__, __iadd__
     """
-
+    
     def __init__(self, d, c, r, doInitialize=True, device=None,
                  numBlocks=1):
         """ Constductor for CSVec
@@ -55,7 +55,7 @@ class CASVec(object):
         # save random quantities in a module-level variable so we can
         # reuse them if someone else makes a sketch with the same d, c, r
         global cache
-
+        global cache_count
         self.r = r # num of rows
         self.c = c # num of columns
         # need int() here b/c annoying np returning np.int64...
@@ -88,7 +88,10 @@ class CASVec(object):
         # if we already have these, don't do the same computation
         # again (wasting memory storing the same data several times)
         cacheKey = (d, c, r, numBlocks, device)
+    
         if cacheKey in cache:
+            # cache_count +=1
+            # print(f"Cache reuse {cache_count}")
             # self.signs = cache[cacheKey]["signs"]
             self.buckets = cache[cacheKey]["buckets"]
             self.cluster_assignment = cache[cacheKey]["cluster_assignment"] 
@@ -159,7 +162,7 @@ class CASVec(object):
         self.buckets = self.buckets.to(self.device)
 
         self.cluster_assignment = np.random.randint(self.r, size=(self.d, 1), dtype=np.uint8)
-        self.cluster_assignment = np.unpackbits(self.cluster_assignment, axis=1, bitorder='little', count=self.r)
+        self.cluster_assignment = np.unpackbits(self.cluster_assignment, axis=1, bitorder='little', count=self.r).astype(np.float32)
         self.cluster_assignment = torch.from_numpy(self.cluster_assignment).to(self.device)
 
 
@@ -359,13 +362,13 @@ class CASVec(object):
 
     def _findAllValues(self):
         if self.numBlocks == 1:
-            vals = torch.zeros(self.r, self.d, device=self.device)
+            vals = torch.zeros(self.d, device=self.device)
             for r in range(self.r):
                 # vals[r] = (self.table[r, self.buckets[r,:]]
                 #            * self.signs[r,:])
-                vals[r] = (self.table[r, self.buckets[r,:]])
-                vals[r] = vals[r] * self.cluster_assignment[:, r]
-            return vals.sum(dim=0)
+                vals_tmp= self.table[r, self.buckets[r,:]]* self.cluster_assignment[:, r]
+                vals+= vals_tmp 
+            return vals
         else:
             medians = torch.zeros(self.d, device=self.device)
             for blockId in range(self.numBlocks):
@@ -461,23 +464,30 @@ def test_merge(numWorker):
     """
     
     # merge_start_time = time.time()
-    # merged_sketch = np.sum(sketch_list[:numWorker])
-    # # merge_sum_time = time.time()
-    # # print(f"merge_sum_time {merge_sum_time - merge_start_time}")
-    # # merge_sum_time = time.time()
+    # merged_sketch = sketch_list[0]
+    # for merge_index in range(1, numWorker):
+    #     merged_sketch+=sketch_list[merge_index]
+        
+    # merge_sum_time = time.time()
+    # print(f"merge_sum_time {merge_sum_time - merge_start_time}")
+    # merge_sum_time = time.time()
     # decode_merge_vals = merged_sketch._findAllValues()
     # merge_end_time = time.time()
-    # # print(f'merge_decode_time {merge_end_time - merge_sum_time}')
+    # print(f'merge_decode_time {merge_end_time - merge_sum_time}')
     # merge_time_diff = merge_end_time - merge_start_time
     
     decode_val = torch.zeros(gradients.shape, device='cuda')
+
     decode_start_time = time.time()    
-    for sketch in sketch_list[:numWorker]:
-        decode = sketch._findAllValues()
+    for sketch_index in range(numWorker):
+        decode = sketch_list[sketch_index]._findAllValues()
+        # decode = torch.ones(gradients.shape, device='cuda')
         decode_val+=decode
+    # decode_val = [sketch._findAllValues() for sketch in sketch_list[:numWorker]]
+
     # decode_query_time = time.time()
     # print(f"decode_query_time {decode_query_time - decode_start_time}")
-    # decode_val_list = torch.sum(torch.vstack(decode_val_list), dim=0)
+    # decode_val_list = torch.sum(torch.vstack(decode_val), dim=0)
     decode_end_time = time.time()
     # print(f'decode_sum_time {decode_end_time - decode_query_time}')
     decode_time_diff = decode_end_time - decode_start_time
@@ -509,7 +519,7 @@ if __name__ == "__main__":
     sketch_size = [40000, 80000,90000, 90000]
     quantization_level =3
     sketch_list = []
-    for worker_index in range(512):  
+    for worker_index in range(128):  
         vec = torch.tensor(gradients, device='cuda')
         cs_sketch = CASVec(vec.size()[0], c=sketch_size[quantization_level-1], r=2**quantization_level, numBlocks=1)
         cs_sketch.accumulateVec(vec)
@@ -518,7 +528,7 @@ if __name__ == "__main__":
     data = []
     for step in range(1):    
         speedup_list = []
-        for i in [4,8,16,32,64,128,256,512,1024]:
+        for i in [4,8,16,32,64,128]:
             print("test merge for {} workers".format(i))
             speedup =test_merge(i)
             speedup_list.append(speedup)
@@ -527,7 +537,7 @@ if __name__ == "__main__":
     print(data)
     data= np.array(data).reshape(-1)
 
-    np.save(os.path.join(os.path.dirname(__file__), 'time_decode.npy'), data)
+    np.save(os.path.join(os.path.dirname(__file__), 'time_merge.npy'), data)
 
     if os.path.exists(os.path.join(os.path.dirname(__file__), 'time_decode.npy')) and os.path.exists(os.path.join(os.path.dirname(__file__), 'time_merge.npy')):
         decode_time = np.load(os.path.join(os.path.dirname(__file__), 'time_decode.npy'))
