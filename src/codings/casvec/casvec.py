@@ -477,16 +477,18 @@ def test_merge(numWorker):
     # merge_time_diff = merge_end_time - merge_start_time
     
     decode_val = torch.zeros(gradients.shape, device='cuda')
-
     decode_start_time = time.time()    
     for sketch_index in range(numWorker):
         decode = sketch_list[sketch_index]._findAllValues()
-        # decode = torch.ones(gradients.shape, device='cuda')
+        # decode_query_time = time.time()
+        # print(f"decode_query_time {decode_query_time - decode_start_time}")
         decode_val+=decode
+    # decode_query_time = time.time()
+    # decode = torch.ones(gradients.shape, device='cuda')
+    
     # decode_val = [sketch._findAllValues() for sketch in sketch_list[:numWorker]]
 
-    # decode_query_time = time.time()
-    # print(f"decode_query_time {decode_query_time - decode_start_time}")
+    
     # decode_val_list = torch.sum(torch.vstack(decode_val), dim=0)
     decode_end_time = time.time()
     # print(f'decode_sum_time {decode_end_time - decode_query_time}')
@@ -517,9 +519,9 @@ if __name__ == "__main__":
 
     gradients = ((np.load(filepath)))
     sketch_size = [40000, 80000,90000, 90000]
-    quantization_level =3
+    quantization_level =1
     sketch_list = []
-    for worker_index in range(128):  
+    for worker_index in range(32):  
         vec = torch.tensor(gradients, device='cuda')
         cs_sketch = CASVec(vec.size()[0], c=sketch_size[quantization_level-1], r=2**quantization_level, numBlocks=1)
         cs_sketch.accumulateVec(vec)
@@ -528,7 +530,7 @@ if __name__ == "__main__":
     data = []
     for step in range(1):    
         speedup_list = []
-        for i in [4,8,16,32,64,128]:
+        for i in [4,8,16,32]:
             print("test merge for {} workers".format(i))
             speedup =test_merge(i)
             speedup_list.append(speedup)
@@ -537,12 +539,12 @@ if __name__ == "__main__":
     print(data)
     data= np.array(data).reshape(-1)
 
-    np.save(os.path.join(os.path.dirname(__file__), 'time_merge.npy'), data)
+    # np.save(os.path.join(os.path.dirname(__file__), 'time_merge.npy'), data)
 
-    if os.path.exists(os.path.join(os.path.dirname(__file__), 'time_decode.npy')) and os.path.exists(os.path.join(os.path.dirname(__file__), 'time_merge.npy')):
-        decode_time = np.load(os.path.join(os.path.dirname(__file__), 'time_decode.npy'))
-        merge_time = np.load(os.path.join(os.path.dirname(__file__), 'time_merge.npy'))
-        speedup = decode_time/merge_time
-        print(speedup)
-    else:
-        pass
+    # if os.path.exists(os.path.join(os.path.dirname(__file__), 'time_decode.npy')) and os.path.exists(os.path.join(os.path.dirname(__file__), 'time_merge.npy')):
+    #     decode_time = np.load(os.path.join(os.path.dirname(__file__), 'time_decode.npy'))
+    #     merge_time = np.load(os.path.join(os.path.dirname(__file__), 'time_merge.npy'))
+    #     speedup = decode_time/merge_time
+    #     print(speedup)
+    # else:
+    #     pass
