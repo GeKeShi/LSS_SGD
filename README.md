@@ -450,12 +450,12 @@ merge time 0.027673721313476562 seconds, decode time 3.354495048522949 seconds
 
 1.10
 - nohup sh run_pytorch.sh >> 110-Res34-c100-lss-level4-lr065-256.log 2>&1 & gn6 25720 [1] 25707 end level 3
-- nohup sh run_pytorch.sh >> 110-Res34-c100-qsgd-level1-lr005-128.log 2>&1 & gn6 25941 [2] 25929
+- nohup sh run_pytorch.sh >> 110-Res34-c100-qsgd-level1-lr005-128.log 2>&1 & gn6 25941 [2] 25929 end
 
 1.12
-- nohup sh run_pytorch.sh >> 112-res34-c100-sgd-lr065-256.log 2>&1 & gn4[1] 28796 28806
-- nohup sh run_pytorch.sh >> 112-res34-c100-lss-lr065-256.log 2>&1 & gn4 29035[2] 29023 level2
-- nohup sh run_pytorch.sh >> 112-res34-c100-lss-level1-lr04-256.log 2>&1 &gn6[3] 29171
+- nohup sh run_pytorch.sh >> 112-res34-c100-sgd-lr065-256.log 2>&1 & gn4[1] 28796 28806  end
+- nohup sh run_pytorch.sh >> 112-res34-c100-lss-lr065-256.log 2>&1 & gn4 29035[2] 29023 level2  end
+- nohup sh run_pytorch.sh >> 112-res34-c100-lss-level1-lr04-256.log 2>&1 &gn6[3] 29171  end
 
 relative_error  wasserstin_distance  [90000,30000,10000,1][80000,1][40000] for resnet50  *2 for attention56
 
@@ -493,3 +493,11 @@ merge: [[0.002011537551879883, 0.0014190673828125, 0.002151012420654297, 0.00348
 decode: [[0.0027704238891601562, 0.003780364990234375, 0.36244988441467285, 1.490889310836792, 3.0295746326446533, 5.927250623703003, 11.665368556976318, 23.401267528533936, 46.58413624763489]]
 speedup: [  1.3772668    2.66397849 168.50199512 427.63065035 639.02222781
   34.99948051  22.66337766  26.42197347  26.30666988]
+
+
+1.14:
+- nohup sh run_pytorch.sh >> 114-res34-c100-sgd-lr01-128.log 2>&1 & gn4 31960[1] 31444 end
+- nohup sh run_pytorch.sh >> 114-res34-c100-sgd-lr03-128.log 2>&1 & gn6 31471[2] 31459 end
+- nohup sh run_pytorch.sh >> 114-res34-c100-lss-level1-lr065-256.log 2>&1 & gn4 32181[1] 32169 end
+- nohup sh run_pytorch.sh >> 114-res34-c100-sgd-lr04-128.log 2>&1 & gn6 31784[1] 31772 end
+- - nohup sh run_pytorch.sh >> 115-res34-c100-lss-lr04-256.log 2>&1 & gn4 723[1] end
