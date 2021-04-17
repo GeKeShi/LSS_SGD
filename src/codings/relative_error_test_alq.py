@@ -229,43 +229,43 @@ if __name__ == '__main__':
     #     jpype.shutdownJVM()        #shut down JVM
 
     # to do and change the array size
-    quantization_level =3
+    quantization_level =1
 
-    print('lss test')
-    relative_error_list = []
-    for factors in range(10,0,-1):
-        error = []
-        for sub_array in np.array_split(original_gradients, 10):
-            print(f'sub_array {sub_array.shape}')
-            distance, sub_error = test_lss(sub_array, int(2**(quantization_level)/2), factors/(10*10))
-            error.append([distance, sub_error])
-        error = np.array(error)
-        relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-        w_distance = np.mean(error[:,0])
-        print(f'factor {factors/10} {relative_error} {w_distance}')
-        relative_error_list.append(relative_error)
-    # to do change the name
-    np.save(os.path.join(os.path.dirname(__file__), 'lss_error_level'+str(quantization_level)+'_res50.npy'), np.array(relative_error_list))
-    # print('qsgd test')
-    # error = []
-    # for sub_array in np.array_split(original_gradients, 10):
-    #     print(f'sub_array {sub_array.shape}')
-    #     distance, sub_error = test_qsgd(sub_array, quantization_level)
-    #     error.append([distance, sub_error])
-    # error = np.array(error)
-    # relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-    # w_distance = np.mean(error[:,0])
-    # print(relative_error, w_distance)
-    # print('terngrad test')
-    # error = []
-    # for sub_array in np.array_split(original_gradients, 10):
-    #     print(f'sub_array {sub_array.shape}')
-    #     distance, sub_error = test_terngrad(sub_array, quantization_level)
-    #     error.append([distance, sub_error])
-    # error = np.array(error)
-    # relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
-    # w_distance = np.mean(error[:,0])
-    # print(relative_error, w_distance)
+    # print('lss test')
+    # relative_error_list = []
+    # for factors in [10]:
+    #     error = []
+    #     for sub_array in np.array_split(original_gradients, 10):
+    #         print(f'sub_array {sub_array.shape}')
+    #         distance, sub_error = test_lss(sub_array, int(2**(quantization_level)/2), factors/(10*10))
+    #         error.append([distance, sub_error])
+    #     error = np.array(error)
+    #     relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    #     w_distance = np.mean(error[:,0])
+    #     print(f'factor {factors/10} {relative_error} {w_distance}')
+    #     relative_error_list.append(relative_error)
+    # # to do change the name
+    # np.save(os.path.join(os.path.dirname(__file__), 'alq_error_level'+str(quantization_level-1)+'_attention.npy'), np.array(relative_error_list))
+    print('qsgd test')
+    error = []
+    for sub_array in np.array_split(original_gradients, 10):
+        print(f'sub_array {sub_array.shape}')
+        distance, sub_error = test_qsgd(sub_array, quantization_level)
+        error.append([distance, sub_error])
+    error = np.array(error)
+    relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    w_distance = np.mean(error[:,0])
+    print(relative_error, w_distance)
+    print('terngrad test')
+    error = []
+    for sub_array in np.array_split(original_gradients, 10):
+        print(f'sub_array {sub_array.shape}')
+        distance, sub_error = test_terngrad(sub_array, quantization_level)
+        error.append([distance, sub_error])
+    error = np.array(error)
+    relative_error = np.sum(error[:,1])/(LA.norm(original_gradients)**2)
+    w_distance = np.mean(error[:,0])
+    print(relative_error, w_distance)
     # # print('svd test')
     # # test_svd(gradients, 3)
 

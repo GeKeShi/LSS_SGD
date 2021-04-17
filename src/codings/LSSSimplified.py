@@ -167,7 +167,7 @@ class LSSSimplified(object):
             # if finalLeft - arraySize < 0:
                 # //log.warn("exceed the expected bucket!");
                 # arraySize = finalLeft
-            arraySize = max(1, arraySize)
+            arraySize = min(1, arraySize)
             # //LOGGER.info("cluster: "+i+", "+arraySize);
             # //new array
             b = [LSSEntry() for i in range(arraySize)]
@@ -252,7 +252,7 @@ class LSSSimplified(object):
             return self.bucketCount*(clusterentropy[i] *  abs((5*clusterCenters[i])/cluster_center_max) / totalSum)
 
         elif choiceArray == 3:
-            bucket_number = [int(40000*self.bucketCount),100,100 ,int(40000*self.bucketCount)]
+            bucket_number = [1,1,1,100,100 ,1,1,1]
             return bucket_number[i]
         else:
             # //density

@@ -51,7 +51,7 @@ class QSGD(Coding):
             w = np.clip(w, -limit, limit)
 
         s = (1 << self._quantization_level) - 1
-        # s = (1 << self._quantization_level)
+        # s = (1 << (self._quantization_level-1))
 
         shape = v.shape
 
@@ -126,7 +126,7 @@ class QSGD(Coding):
             else:
                 norm = code['norm']
                 s = (1 << self._quantization_level) - 1
-
+                # s = (1 << (self._quantization_level-1))
                 real_size = np.prod(code['shape'])
 
                 neo_array = code['neo'].astype('uint64')
